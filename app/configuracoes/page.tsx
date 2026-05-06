@@ -2,10 +2,12 @@ import { createClient } from "@/utils/supabase/server"
 import { logout } from "../login/actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { User, LogOut, Settings, Shield, CalendarClock, ArrowUpIcon, ArrowDownIcon } from "lucide-react"
+import { User, LogOut, Settings, Shield, CalendarClock, ArrowUpIcon, ArrowDownIcon, Bell } from "lucide-react"
 import { DeleteRecurringButton } from "@/components/delete-recurring-button"
 import { EditRecurringModal } from "@/components/edit-recurring-modal"
 import { PushToggle } from "@/components/push-toggle"
+import { NotificationPreferences } from "@/components/notification-preferences"
+import { getNotificationPreferences } from "@/app/notificacoes/actions"
 
 export const revalidate = 30
 
@@ -13,11 +15,14 @@ export default async function ConfiguracoesPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: recurring } = await supabase
-    .from('recurring_transactions')
-    .select('*')
-    .eq('user_id', user?.id)
-    .order('day_of_month', { ascending: true })
+  const [{ data: recurring }, notifPrefs] = await Promise.all([
+    supabase
+      .from('recurring_transactions')
+      .select('*')
+      .eq('user_id', user?.id)
+      .order('day_of_month', { ascending: true }),
+    getNotificationPreferences(),
+  ])
 
   return (
     <div className="flex flex-col min-h-screen p-4 pb-24 space-y-6 pt-8">
@@ -51,6 +56,19 @@ export default async function ConfiguracoesPage() {
               </div>
             </div>
             <PushToggle />
+          </CardContent>
+        </Card>
+
+        {/* Card de preferências de notificação */}
+        <Card className="border-none glass">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Bell size={18} /> Notificações
+            </CardTitle>
+            <CardDescription>Escolha quais notificações deseja receber.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <NotificationPreferences initial={notifPrefs} />
           </CardContent>
         </Card>
 

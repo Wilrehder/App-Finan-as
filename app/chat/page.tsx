@@ -8,6 +8,7 @@ import { parseUserIntent, confirmTransaction, confirmFixedTransaction, deleteLas
 import { transcribeAudio } from "./audio-actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { NotificationBellClient } from "@/components/notification-bell-client"
 
 type MessageOption = {
   label: string;
@@ -539,6 +540,7 @@ export default function ChatPage() {
         <Link href="/calendario" className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-foreground hover:bg-secondary/80 transition-colors">
           <Calendar size={20} />
         </Link>
+        <NotificationBellClient />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 space-y-4 no-scrollbar pt-4 pb-4">

@@ -292,13 +292,29 @@ export default function ChatPage() {
          setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           role: "bot",
-          content: "Certo, é uma despesa. Me fale o valor e com o que foi (ex: 50 reais no ifood)."
+          content: "Certo, é uma despesa. Me fale o valor e com o que foi.\n\n💬 *\"Gastei 150 no mercado\"* ou *\"paguei 80 de farmacia\"*"
         }])
       } else if (forceAction === 'receita') {
          setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           role: "bot",
-          content: "Legal, uma receita. Qual o valor e de onde veio? (ex: recebi 2000 do salário)."
+          content: "Legal, uma receita. Qual o valor e de onde veio?\n\n💬 *\"Recebi 3.000 de salario\"* ou *\"caiu 500 de freelance\""
+        }])
+      } else if (forceAction === 'fixa') {
+         setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          role: "bot",
+          content: "Vamos cadastrar uma conta fixa! É uma despesa ou receita?\n\n💬 *\"Despesa fixa de 200 reais todo dia 10\"* ou *\"Receita fixa de 3 mil todo dia 5\""
+        }])
+      } else if (forceAction === 'confirm_delete_prompt') {
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          role: "bot",
+          content: "Você deseja apagar a Última transação que você registrou? Isso não pode ser desfeito.",
+          options: [
+            { label: "Cancelar", action: "cancelar" },
+            { label: "Sim, apagar", action: "confirm_delete", primary: true }
+          ]
         }])
       } else if (forceAction === 'resumo_opcoes') {
         setMessages(prev => [...prev, {

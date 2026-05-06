@@ -86,16 +86,27 @@ function extractAmount(normalized: string): number | null {
     if (!isNaN(base) && base > 0) return base * 1000;
   }
 
-  // Padrão original: evita anos como 2024, 2025, 2026 e dias como "dia 5"
-  const amountMatch = normalized.match(
-    /(?:r\$|reais)\s*(\d+(?:[.,]\d{1,2})?)|(\\d+(?:[.,]\d{1,2})?)\s*(?:reais|r\$)|(?<!b202)\b(\d+(?:[.,]\d{1,2})?)\b(?!\s*(?:anos?|dia|º))/
-  );
-  if (amountMatch) {
-    const valStr = amountMatch[1] || amountMatch[2] || amountMatch[3];
-    if (valStr) {
-      const val = parseFloat(valStr.replace(',', '.'));
-      if (!isNaN(val) && val > 0) return val;
-    }
+  // Explícito: "R$ 50", "50 reais"
+  const explicitMatch = normalized.match(/(?:r\$\s*)(\d+(?:[.,]\d{1,2})?)|(\d+(?:[.,]\d{1,2})?)\s*(?:reais?|r\$)/);
+  if (explicitMatch) {
+    const val = parseFloat((explicitMatch[1] || explicitMatch[2]).replace(',', '.'));
+    if (!isNaN(val) && val > 0) return val;
+  }
+
+  // Implícito: número solto — mas NUNCA captura um número logo após "dia" (ex: "todo dia 10")
+  // Usa um split para evitar lookbehind variável (não suportado em todos os envs)
+  // Remove trechos como "dia 10", "dia 5", "dia util X" antes de tentar
+  const strippedDays = normalized
+    .replace(/(?:todo\s+)?(?:dia|no\s+dia|sempre\s+(?:no\s+)?dia)\s+\d{1,2}\b/g, '')
+    .replace(/\d{1,2}[oº]?\s*dia\s*[uú]til/g, '')
+    .replace(/dia\s*[uú]til\s*\d{1,2}/g, '')
+    .trim();
+
+  const implicitMatch = strippedDays.match(/\b(\d{1,6}(?:[.,]\d{1,2})?)\b(?!\s*(?:anos?|\/|:))/);
+  if (implicitMatch) {
+    const val = parseFloat(implicitMatch[1].replace(',', '.'));
+    // Evitar anos
+    if (!isNaN(val) && val > 0 && !(val >= 1900 && val <= 2100)) return val;
   }
 
   return null;

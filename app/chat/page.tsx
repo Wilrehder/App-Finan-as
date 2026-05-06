@@ -366,12 +366,20 @@ export default function ChatPage() {
             { label: "Ir para Ajustes", action: "nav_settings", primary: true }
           ]
         } else if (response.success && (response as any).payload && !(response as any).isReport && !(response as any).isDeleteRequest) {
-          const isFixed = (response as any).payload.intent === 'register_fixed';
-          newBotMsg.options = [
-            { label: "Cancelar", action: "cancelar" },
-            { label: "Confirmar", action: isFixed ? "confirmar_fixa" : "confirmar", primary: true }
-          ]
-          newBotMsg.payload = (response as any).payload
+          const intent = (response as any).payload?.intent;
+          const isFixed = intent === 'register_fixed';
+          const isIncomplete = intent === 'incomplete_fixed';
+
+          // Sempre salva o payload para manter contexto entre turnos
+          newBotMsg.payload = (response as any).payload;
+
+          if (!isIncomplete) {
+            // Só exibe botões de confirmar quando temos dados completos
+            newBotMsg.options = [
+              { label: "Cancelar", action: "cancelar" },
+              { label: "Confirmar", action: isFixed ? "confirmar_fixa" : "confirmar", primary: true }
+            ]
+          }
         } else if (response.success && (response as any).isDeleteRequest) {
           newBotMsg.options = [
             { label: "Cancelar", action: "cancelar" },

@@ -94,53 +94,51 @@ export default function ChatPage() {
 
   const startRecording = async () => {
     try {
-      // Reutiliza o stream se estiver vivo; caso contrário pede novo (iOS invalida ao ir para background)
-      if (!isStreamAlive(streamRef.current)) {
-        killStream(); // garante limpeza antes de pedir novo
-        streamRef.current = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            sampleRate: 44100,
-          }
-        });
-      }
-      const stream = streamRef.current!
-      
-      // Setup Audio Context for Visualizer
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // No iOS, reuso de stream pode silenciar o microfone mesmo com readyState='live'.
+      // getUserMedia com permissão já concedida NÃO mostra prompt — retorna stream fresco silenciosamente.
+      // Por isso SEMPRE pedimos um novo stream a cada gravação.
+      killStream();
+      streamRef.current = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100,
+          // channelCount 1 = mono (menor arquivo, mesma qualidade para voz)
+          channelCount: 1,
+        }
+      });
+      const stream = streamRef.current;
+
+      // AudioContext — no iOS começa em estado 'suspended', resume() é obrigatório
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const audioContext = new AudioCtx();
       audioCtxRef.current = audioContext;
+
+      // Força resume (necessário no iOS após interação do usuário)
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+
       const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 64;
       const source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
-      analyser.fftSize = 64; 
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
       const drawVisualizer = () => {
         const canvas = canvasRef.current;
-        if (!canvas) {
-          animationRef.current = requestAnimationFrame(drawVisualizer);
-          return;
-        }
-        
+        if (!canvas) { animationRef.current = requestAnimationFrame(drawVisualizer); return; }
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-
         animationRef.current = requestAnimationFrame(drawVisualizer);
         analyser.getByteFrequencyData(dataArray);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        const barWidth = 3;
-        const gap = 2;
+        const barWidth = 3, gap = 2;
         const maxBars = Math.floor(canvas.width / (barWidth + gap));
-        
-        for(let i = 0; i < maxBars; i++) {
-          const dataIndex = Math.floor((i / maxBars) * bufferLength); 
-          const value = dataArray[dataIndex];
-          const percent = value / 255;
-          const height = Math.max(4, percent * canvas.height);
-          
+        for (let i = 0; i < maxBars; i++) {
+          const value = dataArray[Math.floor((i / maxBars) * bufferLength)];
+          const height = Math.max(4, (value / 255) * canvas.height);
           ctx.fillStyle = '#ef4444';
           ctx.beginPath();
           ctx.roundRect(i * (barWidth + gap), (canvas.height - height) / 2, barWidth, height, 2);
@@ -148,56 +146,73 @@ export default function ChatPage() {
         }
       };
 
+      // Tenta criar o MediaRecorder com o MIME mais adequado
+      let mediaRecorder: MediaRecorder;
       const mimeType = getSupportedMimeType();
-      const mediaRecorderOptions = mimeType ? { mimeType } : {};
-      const mediaRecorder = new MediaRecorder(stream, mediaRecorderOptions)
-      mediaRecorderRef.current = mediaRecorder
-      audioChunksRef.current = []
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data)
-        }
+      try {
+        mediaRecorder = mimeType
+          ? new MediaRecorder(stream, { mimeType })
+          : new MediaRecorder(stream);
+      } catch {
+        // Se falhou com o MIME sugerido, deixa o browser decidir
+        mediaRecorder = new MediaRecorder(stream);
       }
 
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
       mediaRecorder.onstop = async () => {
-        // IMPORTANTE: usar mediaRecorder.mimeType (formato REAL gravado pelo browser)
-        // não o mimeType que pedimos — no iOS eles podem divergir
+        // Usa o MIME real gravado (não o que foi pedido — no iOS podem divergir)
         const actualMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
 
-        // Deriva extensão correta para o Whisper a partir do MIME real
         let ext = 'webm';
         if (actualMime.includes('mp4') || actualMime.includes('aac') || actualMime.includes('m4a')) ext = 'm4a';
         else if (actualMime.includes('ogg') || actualMime.includes('oga')) ext = 'ogg';
         else if (actualMime.includes('wav')) ext = 'wav';
 
-        const audioBlob = new Blob(audioChunksRef.current, { type: actualMime })
-        const formData = new FormData()
-        formData.append('audio', audioBlob, `recording.${ext}`)
-        
-        setLoading(true)
-        const res = await transcribeAudio(formData)
-        if (res.success && res.text) {
-          handleSend(res.text)
-        } else {
-          setLoading(false)
+        const totalSize = audioChunksRef.current.reduce((s, b) => s + b.size, 0);
+
+        if (totalSize < 500) {
+          // Blob vazio ou minúsculo = gravação falhou silenciosamente
+          setLoading(false);
           setMessages(prev => [...prev, {
             id: Date.now().toString(),
-            role: "bot",
-            content: res.error || "Erro ao transcrever áudio."
-          }])
+            role: 'bot',
+            content: '⚠️ Não captei nenhum áudio. Verifique se o microfone está permitido e tente novamente.'
+          }]);
+          return;
         }
-      }
 
-      mediaRecorder.start()
-      setIsRecording(true)
-      playSound('start')
-      
-      setTimeout(() => {
-        drawVisualizer();
-      }, 50)
-    } catch (error) {
-      console.error("Erro ao acessar microfone:", error)
+        const audioBlob = new Blob(audioChunksRef.current, { type: actualMime });
+        const formData = new FormData();
+        formData.append('audio', audioBlob, `recording.${ext}`);
+
+        setLoading(true);
+        const res = await transcribeAudio(formData);
+        if (res.success && res.text) {
+          handleSend(res.text);
+        } else {
+          setLoading(false);
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            role: 'bot',
+            content: res.error || 'Erro ao transcrever áudio.'
+          }]);
+        }
+      };
+
+      // timeslice de 250ms — garante que ondataavailable dispare regularmente (essencial no iOS)
+      mediaRecorder.start(250);
+      setIsRecording(true);
+      playSound('start');
+      setTimeout(() => drawVisualizer(), 50);
+    } catch (error: any) {
+      console.error('Erro ao acessar microfone:', error);
+
       alert("Não foi possível acessar o microfone. Verifique as permissões.")
     }
   }

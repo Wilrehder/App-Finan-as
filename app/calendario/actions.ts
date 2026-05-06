@@ -37,6 +37,8 @@ export type CalendarEvent = {
   amount: number;
   description: string;
   date: string; // YYYY-MM-DD
+  day_of_month: number;
+  is_business_day: boolean;
 }
 
 export async function getCalendarEvents(year: number) {
@@ -78,7 +80,9 @@ export async function getCalendarEvents(year: number) {
         type: rec.type,
         amount: Number(rec.amount),
         description: rec.description,
-        date: `${yyyy}-${mm}-${dd}`
+        date: `${yyyy}-${mm}-${dd}`,
+        day_of_month: rec.day_of_month,
+        is_business_day: rec.is_business_day
       });
     }
   }

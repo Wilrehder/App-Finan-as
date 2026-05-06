@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { ChevronLeft, Search, Plus, Calendar as CalendarIcon, LayoutDashboard, Settings } from "lucide-react"
+import { ChevronLeft, Search, Plus, Calendar as CalendarIcon, LayoutDashboard, Settings, Pencil } from "lucide-react"
 import { getCalendarEvents, CalendarEvent } from "./actions"
 import Link from "next/link"
+import { EditRecurringModal } from "@/components/edit-recurring-modal"
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -57,6 +58,8 @@ export default function CalendarioPage() {
     setView('month')
   }
 
+  const eventDatesSet = new Set(events.map(e => e.date))
+
   // YEAR VIEW
   if (view === 'year') {
     return (
@@ -89,9 +92,13 @@ export default function CalendarioPage() {
                   {days.map(d => {
                     const dateStr = `${currentYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
                     const isToday = dateStr === new Date().toISOString().split('T')[0]
+                    const hasEventInDay = eventDatesSet.has(dateStr)
                     return (
-                      <div key={d} className={`text-center flex justify-center items-center rounded-full ${isToday ? 'bg-red-500 text-white w-4 h-4 mx-auto' : 'text-foreground'}`}>
-                        {d}
+                      <div key={d} className="flex flex-col items-center">
+                        <div className={`text-center flex justify-center items-center rounded-full ${isToday ? 'bg-red-500 text-white w-4 h-4 mx-auto' : 'text-foreground'}`}>
+                          {d}
+                        </div>
+                        {hasEventInDay && !isToday && <div className="w-[3px] h-[3px] rounded-full bg-red-500/50 mt-[1px]" />}
                       </div>
                     )
                   })}
@@ -177,23 +184,40 @@ export default function CalendarioPage() {
 
       {/* Bottom Sheet Details overlay */}
       {selectedEvents.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-secondary/95 backdrop-blur-xl border-t border-white/10 p-5 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom-full duration-300 z-50">
-          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
+        <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-secondary/95 backdrop-blur-xl border-t border-white/10 p-5 pt-3 rounded-t-3xl shadow-[0_-20px_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom-full duration-300 z-[70] pb-32">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-6" />
           
-          <h3 className="text-sm font-semibold text-muted-foreground mb-4">
-            Contas em {selectedDate.split('-').reverse().join('/')}
-          </h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              Contas em {selectedDate.split('-').reverse().join('/')}
+            </h3>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-bold">Fixas</span>
+          </div>
           
-          <div className="space-y-3 max-h-[30vh] overflow-y-auto no-scrollbar pb-safe">
+          <div className="space-y-3 max-h-[40vh] overflow-y-auto no-scrollbar pb-2">
             {selectedEvents.map(ev => (
-              <div key={ev.id} className="flex justify-between items-center bg-background/50 p-4 rounded-2xl">
+              <div key={ev.id} className="flex justify-between items-center bg-background/50 p-4 rounded-2xl border border-white/5">
                 <div className="flex items-center gap-3">
                   <div className={`w-3 h-3 rounded-full ${ev.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`} />
-                  <span className="font-medium">{ev.description}</span>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-sm leading-tight">{ev.description}</span>
+                    <span className="text-[10px] text-muted-foreground mt-0.5">
+                      Todo {ev.is_business_day ? `${ev.day_of_month}º dia útil` : `dia ${ev.day_of_month}`}
+                    </span>
+                  </div>
                 </div>
-                <span className={`font-semibold ${ev.type === 'income' ? 'text-green-500' : 'text-foreground'}`}>
-                  {ev.type === 'income' ? '+' : '-'} R$ {ev.amount.toFixed(2)}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`font-semibold text-sm ${ev.type === 'income' ? 'text-green-500' : 'text-foreground'}`}>
+                    {ev.type === 'income' ? '+' : '-'} R$ {ev.amount.toFixed(2)}
+                  </span>
+                  <EditRecurringModal item={{
+                    id: ev.recurring_id,
+                    description: ev.description,
+                    amount: ev.amount,
+                    day_of_month: ev.day_of_month,
+                    is_business_day: ev.is_business_day
+                  }} />
+                </div>
               </div>
             ))}
           </div>

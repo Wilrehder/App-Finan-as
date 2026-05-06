@@ -331,18 +331,18 @@ export default function ChatPage() {
         }
 
         // Se for um relatório, não pede confirmação. Se for registro e sucesso, pede.
-        if (response.success && response.payload && !(response as any).isReport && !(response as any).isDeleteRequest) {
+        if (response.success && (response as any).payload && !(response as any).isReport && !(response as any).isDeleteRequest) {
           newBotMsg.options = [
             { label: "Cancelar", action: "cancelar" },
             { label: "Confirmar", action: "confirmar", primary: true }
           ]
-          newBotMsg.payload = response.payload
+          newBotMsg.payload = (response as any).payload
         } else if (response.success && (response as any).isDeleteRequest) {
           newBotMsg.options = [
             { label: "Cancelar", action: "cancelar" },
             { label: "Sim, apagar", action: "confirm_delete", primary: true }
           ]
-          newBotMsg.payload = response.payload
+          newBotMsg.payload = (response as any).payload
         } else if (!response.success) {
           // Se não entendeu, mostra os botões de sugestão
           newBotMsg.options = [

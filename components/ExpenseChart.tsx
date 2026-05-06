@@ -36,7 +36,7 @@ export function ExpenseChart({ data }: ChartProps) {
             ))}
           </Pie>
           <Tooltip 
-            formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+            formatter={(value: any) => `R$ ${Number(value).toFixed(2)}`}
             contentStyle={{ backgroundColor: '#18181b', borderRadius: '12px', border: 'none', color: '#fafafa' }}
             itemStyle={{ color: '#fafafa' }}
           />

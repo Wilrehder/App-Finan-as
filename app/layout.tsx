@@ -16,14 +16,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Prisma - Controle financeiro inteligente",
+  title: "Atlas - Controle financeiro inteligente",
   description: "Controle suas finanças de forma simples através de uma inteligência artificial.",
   manifest: "/manifest.json",
   themeColor: "#09090b",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Prisma",
+    title: "Atlas",
   },
   icons: {
     icon: "/logo.png",

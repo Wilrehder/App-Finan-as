@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
     if (todayItems.length === 0 && tomorrowItems.length === 0) continue
 
     // Monta notificação
-    let title = "Prisma 💰"
+    let title = "Atlas 💰"
     let body = ""
 
     if (todayItems.length > 0 && tomorrowItems.length > 0) {

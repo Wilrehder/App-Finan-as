@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { MessageSquare, TrendingUp, ShieldCheck } from "lucide-react"
 
@@ -7,8 +8,8 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <header className="flex items-center justify-between p-6">
         <div className="font-bold text-xl tracking-tight flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-sm">FC</div>
-          FinChat
+          <Image src="/logo.png" alt="Atlas" width={32} height={32} className="object-contain" />
+          Atlas
         </div>
         <Link href="/login">
           <Button variant="ghost" className="rounded-full">Entrar</Button>

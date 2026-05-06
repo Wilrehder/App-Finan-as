@@ -398,9 +398,9 @@ export default function ChatPage() {
       <div className="px-6 py-4 flex items-center justify-between bg-background/80 backdrop-blur-lg border-b border-white/5 shrink-0 z-50">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center overflow-hidden">
-            <Image src="/logo.png" alt="Prisma" width={20} height={20} className="object-contain" />
+            <Image src="/logo.png" alt="Atlas" width={20} height={20} className="object-contain" />
           </div>
-          <span className="font-bold text-lg tracking-tight">Prisma</span>
+          <span className="font-bold text-lg tracking-tight">Atlas</span>
         </div>
         <Link href="/calendario" className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-foreground hover:bg-secondary/80 transition-colors">
           <Calendar size={20} />
@@ -433,8 +433,8 @@ export default function ChatPage() {
               >
                 {msg.role === "bot" && (
                   <div className="flex items-center gap-2 mb-2 opacity-70 text-xs font-semibold tracking-wide uppercase">
-                    <Image src="/logo.png" alt="Prisma" width={14} height={14} className="object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" /> 
-                    Prisma
+                    <Image src="/logo.png" alt="Atlas" width={14} height={14} className="object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" /> 
+                    Atlas
                   </div>
                 )}
                 <p className="text-sm leading-relaxed">{msg.content}</p>

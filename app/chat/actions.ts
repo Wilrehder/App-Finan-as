@@ -11,7 +11,7 @@ export async function parseUserIntent(message: string, context?: ParsedIntent) {
   if (!parsed) {
     return {
       success: false,
-      message: "Olá, sou o Prisma Chat! 👋 Posso te dar algumas sugestões do que posso fazer?"
+      message: "Olá, sou o Atlas Chat! 👋 Posso te dar algumas sugestões do que posso fazer?"
     }
   }
 

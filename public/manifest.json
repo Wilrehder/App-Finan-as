@@ -1,6 +1,6 @@
 {
-  "name": "Prisma",
-  "short_name": "Prisma",
+  "name": "Atlas",
+  "short_name": "Atlas",
   "description": "Controle financeiro inteligente através de um chat.",
   "start_url": "/chat",
   "display": "standalone",

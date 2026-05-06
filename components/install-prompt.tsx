@@ -61,7 +61,7 @@ export function InstallPrompt() {
             <Download size={24} />
           </div>
           <div className="pr-6">
-            <h3 className="font-bold text-sm">Instalar Prisma</h3>
+            <h3 className="font-bold text-sm">Instalar Atlas</h3>
             <p className="text-xs opacity-90 mt-0.5">Use o app offline e sem distrações.</p>
           </div>
         </div>

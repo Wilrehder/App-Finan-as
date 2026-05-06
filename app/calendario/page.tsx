@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { ChevronLeft, Search, Plus, Calendar as CalendarIcon, LayoutDashboard, Settings, Pencil } from "lucide-react"
+import { ChevronLeft, LayoutDashboard, Settings } from "lucide-react"
 import { getCalendarEvents, CalendarEvent } from "./actions"
 import Link from "next/link"
 import { EditRecurringModal } from "@/components/edit-recurring-modal"
@@ -19,6 +19,7 @@ export default function CalendarioPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [monthScrollTarget, setMonthScrollTarget] = useState<number>(new Date().getMonth())
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   const monthListRef = useRef<HTMLDivElement>(null)
 
@@ -50,7 +51,18 @@ export default function CalendarioPage() {
   const hasEvent = (dateString: string) => events.filter(e => e.date === dateString)
 
   const handleDayClick = (dateStr: string) => {
-    setSelectedDate(dateStr)
+    const eventsForDay = events.filter(e => e.date === dateStr)
+    if (eventsForDay.length > 0) {
+      if (dateStr === selectedDate && sheetOpen) {
+        setSheetOpen(false)
+      } else {
+        setSelectedDate(dateStr)
+        setSheetOpen(true)
+      }
+    } else {
+      setSelectedDate(dateStr)
+      setSheetOpen(false)
+    }
   }
 
   const handleMonthClick = (monthIndex: number) => {
@@ -58,7 +70,15 @@ export default function CalendarioPage() {
     setView('month')
   }
 
-  const eventDatesSet = new Set(events.map(e => e.date))
+  // Map dateStr -> { hasIncome, hasExpense }
+  const eventDateMap = events.reduce<Record<string, { hasIncome: boolean; hasExpense: boolean }>>((acc, e) => {
+    if (!acc[e.date]) acc[e.date] = { hasIncome: false, hasExpense: false }
+    if (e.type === 'income') acc[e.date].hasIncome = true
+    if (e.type === 'expense') acc[e.date].hasExpense = true
+    return acc
+  }, {})
+
+  const selectedEvents = hasEvent(selectedDate)
 
   // YEAR VIEW
   if (view === 'year') {
@@ -85,20 +105,26 @@ export default function CalendarioPage() {
               <div key={monthName} onClick={() => handleMonthClick(monthIndex)} className="cursor-pointer">
                 <h3 className="text-[14px] font-bold text-red-500 mb-1">{monthName}</h3>
                 <div className="grid grid-cols-7 gap-x-[2px] gap-y-0.5 text-[8px] text-muted-foreground font-medium mb-1">
-                  {WEEKDAYS.map(d => <div key={d} className="text-center">{d}</div>)}
+                  {WEEKDAYS.map((d, i) => <div key={i} className="text-center">{d}</div>)}
                 </div>
                 <div className="grid grid-cols-7 gap-x-[2px] gap-y-0.5 text-[10px] font-medium">
                   {blanks.map(b => <div key={`b-${b}`} />)}
                   {days.map(d => {
                     const dateStr = `${currentYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
                     const isToday = dateStr === new Date().toISOString().split('T')[0]
-                    const hasEventInDay = eventDatesSet.has(dateStr)
+                    const info = eventDateMap[dateStr]
                     return (
                       <div key={d} className="flex flex-col items-center">
                         <div className={`text-center flex justify-center items-center rounded-full ${isToday ? 'bg-red-500 text-white w-4 h-4 mx-auto' : 'text-foreground'}`}>
                           {d}
                         </div>
-                        {hasEventInDay && !isToday && <div className="w-[3px] h-[3px] rounded-full bg-red-500/50 mt-[1px]" />}
+                        {/* dots: expense = red, income = green */}
+                        {info && !isToday && (
+                          <div className="flex gap-[1px] mt-[1px]">
+                            {info.hasExpense && <div className="w-[3px] h-[3px] rounded-full bg-red-500/70" />}
+                            {info.hasIncome && <div className="w-[3px] h-[3px] rounded-full bg-green-500/70" />}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -112,8 +138,6 @@ export default function CalendarioPage() {
   }
 
   // MONTH VIEW (CONTINUOUS)
-  const selectedEvents = hasEvent(selectedDate)
-
   return (
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
       {/* Header */}
@@ -149,25 +173,25 @@ export default function CalendarioPage() {
                   const dateStr = `${currentYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
                   const isSelected = dateStr === selectedDate
                   const isToday = dateStr === new Date().toISOString().split('T')[0]
-                  const dayEvents = hasEvent(dateStr)
-                  
-                  // Dot colors
-                  const hasIncome = dayEvents.some(e => e.type === 'income')
-                  const hasExpense = dayEvents.some(e => e.type === 'expense')
+                  const info = eventDateMap[dateStr]
+                  const hasIncome = info?.hasIncome ?? false
+                  const hasExpense = info?.hasExpense ?? false
 
                   return (
-                    <div 
-                      key={d} 
+                    <div
+                      key={d}
                       onClick={() => handleDayClick(dateStr)}
                       className="flex flex-col items-center justify-start h-10 cursor-pointer relative"
                     >
                       <div className={`
                         flex items-center justify-center w-8 h-8 rounded-full text-lg font-medium transition-all
-                        ${isSelected ? (isToday ? 'bg-red-500 text-white' : 'bg-primary/20 text-primary') : (isToday ? 'text-red-500' : 'text-foreground')}
+                        ${isSelected && sheetOpen
+                          ? (isToday ? 'bg-red-500 text-white' : 'bg-primary/20 text-primary')
+                          : (isToday ? 'text-red-500' : 'text-foreground')}
                       `}>
                         {d}
                       </div>
-                      
+
                       {/* Dots Container */}
                       <div className="flex gap-0.5 mt-0.5">
                         {hasExpense && <div className="w-1.5 h-1.5 rounded-full bg-red-500/80" />}
@@ -183,17 +207,24 @@ export default function CalendarioPage() {
       </div>
 
       {/* Bottom Sheet Details overlay */}
-      {selectedEvents.length > 0 && (
+      {sheetOpen && selectedEvents.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-secondary/95 backdrop-blur-xl border-t border-white/10 p-5 pt-3 rounded-t-3xl shadow-[0_-20px_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom-full duration-300 z-[70] pb-32">
-          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-6" />
-          
+          {/* Handle — clicável para minimizar */}
+          <button
+            onClick={() => setSheetOpen(false)}
+            className="w-full flex justify-center mb-4 py-1 -mt-1"
+            aria-label="Fechar painel"
+          >
+            <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />
+          </button>
+
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-semibold text-muted-foreground">
               Contas em {selectedDate.split('-').reverse().join('/')}
             </h3>
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-bold">Fixas</span>
           </div>
-          
+
           <div className="space-y-3 max-h-[40vh] overflow-y-auto no-scrollbar pb-2">
             {selectedEvents.map(ev => (
               <div key={ev.id} className="flex justify-between items-center bg-background/50 p-4 rounded-2xl border border-white/5">

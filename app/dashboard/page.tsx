@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ArrowDownIcon, ArrowUpIcon, PieChart, TrendingUp, Settings, Calendar } from "lucide-react"
 import Link from "next/link"
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 30 // revalida a cada 30 segundos
 
 export default async function DashboardPage(props: { searchParams: Promise<{ month?: string; year?: string; type?: 'all'|'income'|'expense' }> }) {
   const searchParams = await props.searchParams
@@ -17,11 +17,14 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
     type: searchParams.type
   }
 
-  // Sincroniza as transações fixas do mês atual antes de carregar os dados
-  await syncRecurringTransactions()
+  // Sync roda em background sem bloquear a navegação
+  syncRecurringTransactions()
 
-  const data = await getDashboardData(filters)
-  const availablePeriods = await getAvailablePeriods()
+  // Queries paralelas — não esperam uma a outra
+  const [data, availablePeriods] = await Promise.all([
+    getDashboardData(filters),
+    getAvailablePeriods()
+  ])
 
   return (
     <div className="flex flex-col min-h-screen p-4 pb-24 space-y-6 animate-in fade-in duration-500 pt-8">

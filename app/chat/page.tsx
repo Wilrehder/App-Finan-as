@@ -43,6 +43,9 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [editModal, setEditModal] = useState<{ payload: any; msgId: string } | null>(null)
+  const [editAmount, setEditAmount] = useState("")
+  const [editDate, setEditDate] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -507,6 +510,26 @@ export default function ChatPage() {
                       {opt.label}
                     </Button>
                   ))}
+                  {/* Botão Alterar — aparece apenas em mensagens de confirmação de transação */}
+                  {msg.payload?.intent && ['register','register_fixed'].includes(msg.payload.intent) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full px-4 h-9 bg-background hover:bg-secondary border-amber-500/40 text-amber-400"
+                      onClick={() => {
+                        setEditAmount(msg.payload.amount?.toString() ?? '')
+                        setEditDate(
+                          msg.payload.intent === 'register_fixed'
+                            ? (msg.payload.day_of_month?.toString() ?? '')
+                            : (msg.payload.transaction_date ?? '')
+                        )
+                        setEditModal({ payload: msg.payload, msgId: msg.id })
+                      }}
+                      disabled={loading}
+                    >
+                      ✏️ Alterar
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

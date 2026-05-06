@@ -77,6 +77,20 @@ function normalize(str: string): string {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+// ─── Normaliza formatos numéricos BR antes de parsear ───────────────────────────
+// Converte "R$20.000" → "r$20000" e "1.500,50" → "1500.50" antes de parsear
+function normalizeBRNumbers(str: string): string {
+  // Formato: N.NNN,CC ou N.NNN (separador de milhar = ponto, decimal = vírgula)
+  // Ex: "20.000,50" → "20000.50", "1.500" → "1500", "R$20.000" → "r$20000"
+  return str
+    // N.NNN,CC → NNNN.CC
+    .replace(/(\d{1,3})(?:\.(\d{3})),([0-9]{1,2})/g, (_, a, b, c) => `${a}${b}.${c}`)
+    // N.NNN (sem casa decimal — claramente milhar pois têm exatamente 3 dígitos após o ponto)
+    .replace(/(\d{1,3})\.(\d{3})(?!\d|[.,])/g, (_, a, b) => `${a}${b}`)
+    // N,CC → N.CC (decimal com vírgula)
+    .replace(/(\d),(\d{1,2})(?!\d)/g, (_, a, b) => `${a}.${b}`);
+}
+
 // Números por extenso como multiplicadores de mil
 const MIL_PREFIXES: Record<string, number> = {
   'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'tres': 3, 'quatro': 4, 'cinco': 5,
@@ -88,40 +102,43 @@ const MIL_PREFIXES: Record<string, number> = {
 // ─── Extrai valor monetário — suporta "mil", ordinais e formatos pt-BR ───────
 // Remove primeiros os indicadores de dia para não confundir "dia 10" com valor
 function extractAmount(raw: string): number | null {
-  // Remove "todo dia N", "dia N", "dia util N" para não capturar o número do dia como valor
-  const normalized = raw
+  // 1. Normaliza separadores BR antes de qualquer coisa
+  let normalized = normalizeBRNumbers(raw);
+
+  // 2. Remove "todo dia N", "dia N", "dia util N" para não capturar o número do dia como valor
+  normalized = normalized
     .replace(/(?:todo\s+)?(?:dia|no\s+dia|sempre\s+(?:no\s+)?dia)\s+\d{1,2}\b/g, '')
     .replace(/\d{1,2}[oº]?\s*dia\s*[uu]til/g, '')
     .replace(/dia\s*[uu]til\s*\d{1,2}/g, '')
     .trim();
 
-  // 1. "X mil" com X numérico: "20 mil", "20.5 mil", "R$ 5 mil"
-  const numMilMatch = normalized.match(/(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)\s*mil(?:\s+reais?)?(?!\h|\w)/i);
+  // 3. "X mil" com X numérico: "20 mil", "20.5 mil", "R$ 5 mil"
+  const numMilMatch = normalized.match(/(?:r\$\s*)?(\d+(?:\.\d{1,2})?)\s*mil(?:\s+reais?)?(?![a-z])/i);
   if (numMilMatch) {
-    const base = parseFloat(numMilMatch[1].replace(',', '.'));
+    const base = parseFloat(numMilMatch[1]);
     if (!isNaN(base) && base > 0) return base * 1000;
   }
 
-  // 2. "X mil" com X por extenso: "vinte mil", "dois mil"
+  // 4. "X mil" com X por extenso: "vinte mil", "dois mil"
   for (const [word, val] of Object.entries(MIL_PREFIXES)) {
     const re = new RegExp(`\\b${word}\\s+mil(?:\\s+reais?)?\\b`, 'i');
     if (re.test(normalized)) return val * 1000;
   }
 
-  // 3. "mil reais" ou apenas "mil" sozinho = 1000
+  // 5. "mil reais" ou apenas "mil" sozinho = 1000
   if (/\bmil(?:\s+reais?)?\b/.test(normalized)) return 1000;
 
-  // 4. Explícito sem "mil": "R$ 50", "50 reais"
-  const explicitMatch = normalized.match(/r\$\s*(\d+(?:[.,]\d{1,2})?)|(\d+(?:[.,]\d{1,2})?)\s*reais?\b/);
+  // 6. Explícito sem "mil": "R$ 50", "50 reais"
+  const explicitMatch = normalized.match(/r\$\s*(\d+(?:\.\d{1,2})?)|(\d+(?:\.\d{1,2})?)\s*reais?\b/);
   if (explicitMatch) {
-    const val = parseFloat((explicitMatch[1] || explicitMatch[2]).replace(',', '.'));
+    const val = parseFloat(explicitMatch[1] || explicitMatch[2]);
     if (!isNaN(val) && val > 0) return val;
   }
 
-  // 5. Implícito: número solto (ex: "gastei 50")
-  const implicitMatch = normalized.match(/\b(\d{1,6}(?:[.,]\d{1,2})?)\b(?!\s*(?:anos?|\/|:))/);
+  // 7. Implícito: número solto (ex: "gastei 50")
+  const implicitMatch = normalized.match(/\b(\d{1,8}(?:\.\d{1,2})?)\b(?!\s*(?:anos?|\/|:))/);
   if (implicitMatch) {
-    const val = parseFloat(implicitMatch[1].replace(',', '.'));
+    const val = parseFloat(implicitMatch[1]);
     // Evita anos (1900-2100)
     if (!isNaN(val) && val > 0 && !(val >= 1900 && val <= 2100)) return val;
   }

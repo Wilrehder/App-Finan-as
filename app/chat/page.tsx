@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import { Send, Mic, Square, Trash2 } from "lucide-react"
-import { parseUserIntent, confirmTransaction, deleteLastTransaction } from "./actions"
+import { parseUserIntent, confirmTransaction, confirmFixedTransaction, deleteLastTransaction } from "./actions"
 import { transcribeAudio } from "./audio-actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -247,6 +247,13 @@ export default function ChatPage() {
           role: "bot",
           content: response.message
         }])
+      } else if (forceAction === 'confirmar_fixa') {
+        const response = await confirmFixedTransaction(payload)
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          role: "bot",
+          content: response.message
+        }])
       } else if (forceAction === 'cancelar') {
         setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
@@ -332,9 +339,10 @@ export default function ChatPage() {
 
         // Se for um relatório, não pede confirmação. Se for registro e sucesso, pede.
         if (response.success && (response as any).payload && !(response as any).isReport && !(response as any).isDeleteRequest) {
+          const isFixed = (response as any).payload.intent === 'register_fixed';
           newBotMsg.options = [
             { label: "Cancelar", action: "cancelar" },
-            { label: "Confirmar", action: "confirmar", primary: true }
+            { label: "Confirmar", action: isFixed ? "confirmar_fixa" : "confirmar", primary: true }
           ]
           newBotMsg.payload = (response as any).payload
         } else if (response.success && (response as any).isDeleteRequest) {

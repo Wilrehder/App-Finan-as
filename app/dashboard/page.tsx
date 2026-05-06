@@ -1,4 +1,5 @@
 import { getDashboardData, getAvailablePeriods } from "./actions"
+import { syncRecurringTransactions } from "@/lib/sync"
 import { DashboardFilters } from "@/components/dashboard-filters"
 import { ExpenseChart } from "@/components/ExpenseChart"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -14,6 +15,9 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
     year: searchParams.year ? parseInt(searchParams.year) : undefined,
     type: searchParams.type
   }
+
+  // Sincroniza as transações fixas do mês atual antes de carregar os dados
+  await syncRecurringTransactions()
 
   const data = await getDashboardData(filters)
   const availablePeriods = await getAvailablePeriods()

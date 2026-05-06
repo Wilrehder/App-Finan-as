@@ -1,5 +1,5 @@
 export type TransactionType = 'income' | 'expense';
-export type ChatIntentType = 'register' | 'report' | 'delete' | 'unknown';
+export type ChatIntentType = 'register' | 'register_fixed' | 'report' | 'delete' | 'unknown';
 
 export interface ParsedIntent {
   intent: ChatIntentType;
@@ -10,6 +10,7 @@ export interface ParsedIntent {
   category?: string;
   description?: string;
   transaction_date?: string; // Formato YYYY-MM-DD
+  day_of_month?: number; // Para fixed
   
   // Para report:
   report_start_date?: string; // YYYY-MM-DD
@@ -22,6 +23,7 @@ const INCOME_KEYWORDS = ['receita', 'receitas', 'ganho', 'ganhos', 'recebi', 'ga
 const REPORT_KEYWORDS = ['relatório', 'resumo', 'extrato', 'saldo', 'balanço', 'total'];
 const REPORT_PHRASES = ['quanto gastei', 'quanto recebi', 'meus gastos', 'minhas despesas', 'meus ganhos', 'minhas receitas', 'gastos de', 'despesas de', 'ganhos de', 'receitas de'];
 const DELETE_KEYWORDS = ['apagar', 'apague', 'excluir', 'exclua', 'cancelar', 'cancele', 'desfazer', 'desfaça', 'deletar', 'delete'];
+const FIXED_KEYWORDS = ['fixo', 'fixa', 'recorrente', 'todo mês', 'todo mes', 'todo dia', 'todos os meses'];
 
 const CATEGORY_MAP: Record<string, string[]> = {
   'Mercado': ['mercado', 'supermercado', 'compras', 'feira', 'açougue', 'padaria'],
@@ -188,8 +190,9 @@ export function parseMessage(message: string): ParsedIntent | null {
     }
   }
 
-  // Inferir a data da transação
+  // Inferir a data da transação normal
   let transaction_date = new Date(now);
+  let day_of_month = now.getDate();
   
   if (normalized.includes('anteontem')) {
     transaction_date.setDate(transaction_date.getDate() - 2);
@@ -200,11 +203,21 @@ export function parseMessage(message: string): ParsedIntent | null {
     if (dayMatch) {
       const day = parseInt(dayMatch[1]);
       if (day > 0 && day <= 31) {
+        day_of_month = day;
         transaction_date.setDate(day);
         if (day > now.getDate()) {
           transaction_date.setMonth(transaction_date.getMonth() - 1);
         }
       }
+    }
+  }
+
+  // Verifica se é intenção de Registro Fixo
+  let isFixed = false;
+  for (const word of FIXED_KEYWORDS) {
+    if (normalized.includes(word)) {
+      isFixed = true;
+      break;
     }
   }
 
@@ -225,11 +238,12 @@ export function parseMessage(message: string): ParsedIntent | null {
   }
 
   return {
-    intent: 'register',
+    intent: isFixed ? 'register_fixed' : 'register',
     type,
     amount,
     category,
     description,
-    transaction_date: formatDate(transaction_date)
+    transaction_date: formatDate(transaction_date),
+    day_of_month
   };
 }

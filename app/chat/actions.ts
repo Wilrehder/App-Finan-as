@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/utils/supabase/server"
 import { parseMessage, ParsedIntent } from "@/lib/parser"
+import { syncRecurringTransactions } from "@/lib/sync"
 
 export async function parseUserIntent(message: string) {
   const parsed = parseMessage(message)
@@ -27,7 +28,17 @@ export async function parseUserIntent(message: string) {
     }
   }
 
-  // Se for register:
+  // Se for register_fixed:
+  if (parsed.intent === 'register_fixed') {
+    const typeStr = parsed.type === 'income' ? 'RECEITA FIXA' : 'DESPESA FIXA'
+    return {
+      success: true,
+      message: `Entendi que você quer registrar uma ${typeStr} de R$ ${parsed.amount?.toFixed(2)} em ${parsed.category} para todo dia ${parsed.day_of_month}. Podemos confirmar?`,
+      payload: parsed
+    }
+  }
+
+  // Se for register normal:
   const typeStr = parsed.type === 'income' ? 'RECEITA' : 'DESPESA'
   
   // Formatando a data de YYYY-MM-DD para DD/MM/YYYY para exibir na tela
@@ -45,6 +56,8 @@ async function generateReport(parsed: ParsedIntent) {
   const supabase = await createClient()
   const { data: { user }, error: userError } = await supabase.auth.getUser()
   if (userError || !user) throw new Error("Unauthorized")
+
+  await syncRecurringTransactions()
 
   const { data: transactions, error } = await supabase
     .from('transactions')
@@ -115,6 +128,45 @@ export async function confirmTransaction(parsed: ParsedIntent) {
   return {
     success: true,
     message: `✅ ${typeStr} de R$ ${parsed.amount?.toFixed(2)} salva com sucesso para o dia ${d}/${m}/${y}!`
+  }
+}
+
+export async function confirmFixedTransaction(parsed: ParsedIntent) {
+  const supabase = await createClient()
+  
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) throw new Error("Unauthorized")
+
+  const { error: dbError } = await supabase
+    .from('recurring_transactions')
+    .insert({
+      user_id: user.id,
+      type: parsed.type,
+      amount: parsed.amount,
+      category: parsed.category,
+      description: parsed.description,
+      day_of_month: parsed.day_of_month,
+    })
+
+  if (dbError) {
+    return {
+      success: false,
+      message: "Erro ao salvar conta fixa no banco de dados. " + dbError.message
+    }
+  }
+
+  // Force sync immediately
+  await syncRecurringTransactions()
+
+  revalidatePath("/dashboard")
+  revalidatePath("/chat")
+  revalidatePath("/configuracoes")
+
+  const typeStr = parsed.type === 'income' ? 'Receita Fixa' : 'Despesa Fixa'
+  
+  return {
+    success: true,
+    message: `🔄 ${typeStr} de R$ ${parsed.amount?.toFixed(2)} salva com sucesso para todo dia ${parsed.day_of_month}! O lançamento deste mês já foi gerado.`
   }
 }
 

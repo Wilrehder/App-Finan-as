@@ -8,10 +8,32 @@ import { syncRecurringTransactions } from "@/lib/sync"
 export async function parseUserIntent(message: string, context?: ParsedIntent) {
   const parsed = parseMessage(message, context)
   
+  // Não entendeu nada — mostra menu de capacidades com botões na UI
   if (!parsed) {
+    // Se havia contexto (bot perguntou algo), orienta melhor
+    if (context?.intent === 'incomplete_fixed') {
+      if (!context.amount) {
+        const typeStr = context.type === 'income' ? 'receita fixa' : 'despesa fixa';
+        return {
+          success: false,
+          message: `Não entendi o valor. Para cadastrar uma ${typeStr}, me diga assim:\n\n💬 *"R$ 500 reais"* ou *"500"* ou *"2 mil reais"*`,
+          payload: context
+        }
+      }
+      if (!context.day_of_month) {
+        return {
+          success: false,
+          message: `Não entendi o dia. Me diga assim:\n\n💬 *"dia 5"* → todo dia 5\n💬 *"dia 10"* → todo dia 10\n💬 *"5º dia útil"* → 5º dia útil do mês`,
+          payload: context
+        }
+      }
+    }
+
+    // Sem contexto — mostra lista de tudo que o agente faz
     return {
       success: false,
-      message: "Olá, sou o Atlas Chat! 👋 Posso te dar algumas sugestões do que posso fazer?"
+      isShowCapabilities: true,
+      message: `Não entendi 😅 Veja o que posso fazer por você:`
     }
   }
 
@@ -19,8 +41,8 @@ export async function parseUserIntent(message: string, context?: ParsedIntent) {
     return {
       success: true,
       message: "Aqui está um atalho para você visualizar e editar todas as suas contas e rendas fixas:",
-      isReport: true, // we don't want confirmation buttons
-      payload: { action: 'open_settings' } // we will catch this in the UI
+      isReport: true,
+      payload: { action: 'open_settings' }
     }
   }
 
@@ -43,13 +65,14 @@ export async function parseUserIntent(message: string, context?: ParsedIntent) {
       const typeStr = parsed.type === 'income' ? 'receita fixa' : 'despesa fixa';
       return {
         success: true,
-        message: `Qual ${typeStr} você quer cadastrar e qual o valor?`,
+        message: `Certo! Vou cadastrar uma ${typeStr}. Qual o valor? (ex: *"R$ 1.500"* ou *"2 mil reais"*)`,
         payload: parsed
       }
     } else if (!parsed.day_of_month) {
+      const valorFormatado = parsed.amount?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
       return {
         success: true,
-        message: `Certo, ${parsed.description} de R$ ${parsed.amount?.toFixed(2)}. E qual o dia de cobrança todo mês? (ex: 'dia 5' ou 'quinto dia útil')`,
+        message: `Certo, ${parsed.description} de ${valorFormatado}. Todo mês, qual o dia de cobrança?\n\n💬 *"dia 5"* ou *"5º dia útil"*`,
         payload: parsed
       }
     }
@@ -59,26 +82,27 @@ export async function parseUserIntent(message: string, context?: ParsedIntent) {
   if (parsed.intent === 'register_fixed') {
     const typeStr = parsed.type === 'income' ? 'RECEITA FIXA' : 'DESPESA FIXA'
     const dayStr = parsed.is_business_day ? `${parsed.day_of_month}º dia útil` : `dia ${parsed.day_of_month}`
+    const valorFormatado = parsed.amount?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
     return {
       success: true,
-      message: `Entendi que você quer registrar uma ${typeStr} de R$ ${parsed.amount?.toFixed(2)} em ${parsed.category} para todo ${dayStr}. Podemos confirmar?`,
+      message: `Entendi! ${typeStr} de ${valorFormatado} em ${parsed.category} para todo ${dayStr}. Confirma?`,
       payload: parsed
     }
   }
 
-  // Se for register normal:
+  // Registro normal:
   const typeStr = parsed.type === 'income' ? 'RECEITA' : 'DESPESA'
-  
-  // Formatando a data de YYYY-MM-DD para DD/MM/YYYY para exibir na tela
   const [y, m, d] = parsed.transaction_date!.split('-')
   const formattedDate = `${d}/${m}/${y}`
+  const valorFormatado = parsed.amount?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   
   return {
     success: true,
-    message: `Entendi que você quer registrar uma ${typeStr} de R$ ${parsed.amount?.toFixed(2)} em ${parsed.category} no dia ${formattedDate}. Podemos confirmar?`,
+    message: `Entendi! ${typeStr} de ${valorFormatado} em ${parsed.category} no dia ${formattedDate}. Confirma?`,
     payload: parsed
   }
 }
+
 
 async function generateReport(parsed: ParsedIntent) {
   const supabase = await createClient()

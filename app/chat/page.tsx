@@ -387,12 +387,26 @@ export default function ChatPage() {
           ]
           newBotMsg.payload = (response as any).payload
         } else if (!response.success) {
-          // Se não entendeu, mostra os botões de sugestão
-          newBotMsg.options = [
-            { label: "Despesa", action: "despesa" },
-            { label: "Receita", action: "receita" },
-            { label: "Resumo", action: "resumo_opcoes" }
-          ]
+          // Mantém contexto se existia (resposta errada para pergunta do bot)
+          if ((response as any).payload) {
+            newBotMsg.payload = (response as any).payload;
+          }
+          if ((response as any).isShowCapabilities) {
+            // Sem contexto — exibe menu completo de capacidades
+            newBotMsg.options = [
+              { label: "💸 Despesa", action: "despesa" },
+              { label: "💰 Receita", action: "receita" },
+              { label: "🔄 Fixa Mensal", action: "fixa" },
+              { label: "📊 Resumo", action: "resumo_opcoes" },
+              { label: "🗑️ Apagar última", action: "confirm_delete_prompt" },
+            ]
+          } else {
+            newBotMsg.options = [
+              { label: "Despesa", action: "despesa" },
+              { label: "Receita", action: "receita" },
+              { label: "Resumo", action: "resumo_opcoes" }
+            ]
+          }
         }
 
         setMessages(prev => [...prev, newBotMsg])

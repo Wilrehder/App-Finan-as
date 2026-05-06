@@ -77,35 +77,52 @@ function normalize(str: string): string {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
-// ─── Extrai valor monetário com suporte a "mil" ───────────────────────────
-function extractAmount(normalized: string): number | null {
-  // Suporte a "mil": "20 mil reais", "R$ 5 mil", "20mil"
-  const milMatch = normalized.match(/(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)\s*mil(?:\s+reais?)?\b/);
-  if (milMatch) {
-    const base = parseFloat(milMatch[1].replace(',', '.'));
+// Números por extenso como multiplicadores de mil
+const MIL_PREFIXES: Record<string, number> = {
+  'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'tres': 3, 'quatro': 4, 'cinco': 5,
+  'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10, 'vinte': 20,
+  'trinta': 30, 'quarenta': 40, 'cinquenta': 50, 'sessenta': 60,
+  'setenta': 70, 'oitenta': 80, 'noventa': 90, 'cem': 100, 'cento': 100,
+};
+
+// ─── Extrai valor monetário — suporta "mil", ordinais e formatos pt-BR ───────
+// Remove primeiros os indicadores de dia para não confundir "dia 10" com valor
+function extractAmount(raw: string): number | null {
+  // Remove "todo dia N", "dia N", "dia util N" para não capturar o número do dia como valor
+  const normalized = raw
+    .replace(/(?:todo\s+)?(?:dia|no\s+dia|sempre\s+(?:no\s+)?dia)\s+\d{1,2}\b/g, '')
+    .replace(/\d{1,2}[oº]?\s*dia\s*[uu]til/g, '')
+    .replace(/dia\s*[uu]til\s*\d{1,2}/g, '')
+    .trim();
+
+  // 1. "X mil" com X numérico: "20 mil", "20.5 mil", "R$ 5 mil"
+  const numMilMatch = normalized.match(/(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)\s*mil(?:\s+reais?)?(?!\h|\w)/i);
+  if (numMilMatch) {
+    const base = parseFloat(numMilMatch[1].replace(',', '.'));
     if (!isNaN(base) && base > 0) return base * 1000;
   }
 
-  // Explícito: "R$ 50", "50 reais"
-  const explicitMatch = normalized.match(/(?:r\$\s*)(\d+(?:[.,]\d{1,2})?)|(\d+(?:[.,]\d{1,2})?)\s*(?:reais?|r\$)/);
+  // 2. "X mil" com X por extenso: "vinte mil", "dois mil"
+  for (const [word, val] of Object.entries(MIL_PREFIXES)) {
+    const re = new RegExp(`\\b${word}\\s+mil(?:\\s+reais?)?\\b`, 'i');
+    if (re.test(normalized)) return val * 1000;
+  }
+
+  // 3. "mil reais" ou apenas "mil" sozinho = 1000
+  if (/\bmil(?:\s+reais?)?\b/.test(normalized)) return 1000;
+
+  // 4. Explícito sem "mil": "R$ 50", "50 reais"
+  const explicitMatch = normalized.match(/r\$\s*(\d+(?:[.,]\d{1,2})?)|(\d+(?:[.,]\d{1,2})?)\s*reais?\b/);
   if (explicitMatch) {
     const val = parseFloat((explicitMatch[1] || explicitMatch[2]).replace(',', '.'));
     if (!isNaN(val) && val > 0) return val;
   }
 
-  // Implícito: número solto — mas NUNCA captura um número logo após "dia" (ex: "todo dia 10")
-  // Usa um split para evitar lookbehind variável (não suportado em todos os envs)
-  // Remove trechos como "dia 10", "dia 5", "dia util X" antes de tentar
-  const strippedDays = normalized
-    .replace(/(?:todo\s+)?(?:dia|no\s+dia|sempre\s+(?:no\s+)?dia)\s+\d{1,2}\b/g, '')
-    .replace(/\d{1,2}[oº]?\s*dia\s*[uú]til/g, '')
-    .replace(/dia\s*[uú]til\s*\d{1,2}/g, '')
-    .trim();
-
-  const implicitMatch = strippedDays.match(/\b(\d{1,6}(?:[.,]\d{1,2})?)\b(?!\s*(?:anos?|\/|:))/);
+  // 5. Implícito: número solto (ex: "gastei 50")
+  const implicitMatch = normalized.match(/\b(\d{1,6}(?:[.,]\d{1,2})?)\b(?!\s*(?:anos?|\/|:))/);
   if (implicitMatch) {
     const val = parseFloat(implicitMatch[1].replace(',', '.'));
-    // Evitar anos
+    // Evita anos (1900-2100)
     if (!isNaN(val) && val > 0 && !(val >= 1900 && val <= 2100)) return val;
   }
 

@@ -3,11 +3,11 @@ import { syncRecurringTransactions } from "@/lib/sync"
 import { DashboardFilters } from "@/components/dashboard-filters"
 import { ExpenseChart } from "@/components/ExpenseChart"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { ArrowDownIcon, ArrowUpIcon, PieChart, TrendingUp, Settings, Calendar } from "lucide-react"
-import { DeleteTransactionButton } from "@/components/delete-transaction-button"
+import { ArrowUpIcon, ArrowDownIcon, PieChart, TrendingUp, Calendar } from "lucide-react"
 import { ExportPdfButton } from "@/components/export-pdf-button"
 import { NotificationBell } from "@/components/notification-bell"
 import { NotificationOnboardingModal } from "@/components/notification-onboarding-modal"
+import { TransactionList } from "@/components/transaction-list"
 import Link from "next/link"
 
 export const revalidate = 30 // revalida a cada 30 segundos
@@ -126,89 +126,19 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold tracking-tight">Extrato do Período</h2>
-        <div className="space-y-3">
-          {data.transactions.length === 0 ? (
-            <div className="text-center p-8 text-sm text-muted-foreground glass rounded-2xl">
-              Nenhuma transação encontrada para este filtro.
-            </div>
-          ) : (
-            <>
-              {/* Contas Fixas */}
-              {data.transactions.filter(t => t.recurring_id).length > 0 && (
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Fixas</h3>
-                    <a href="/configuracoes" className="text-xs text-primary font-medium hover:underline flex items-center gap-1">
-                      Gerenciar <Settings size={12} />
-                    </a>
-                  </div>
-                  <div className="space-y-3">
-                    {data.transactions.filter(t => t.recurring_id).map((t) => {
-                      const [year, month, day] = t.transaction_date.split('-')
-                      const formattedDate = `${day}/${month}`
-
-                      return (
-                        <div key={t.id} className="flex items-center justify-between p-4 glass rounded-2xl border border-white/5 relative overflow-hidden">
-                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/40" />
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t.type === 'income' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
-                              {t.type === 'income' ? <ArrowUpIcon size={18} /> : <ArrowDownIcon size={18} />}
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm leading-tight">{t.description}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">{t.category} • {formattedDate}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`font-semibold ${t.type === 'income' ? 'text-green-500' : ''}`}>
-                              {t.type === 'income' ? '+' : '-'}R$ {Number(t.amount).toFixed(2)}
-                            </span>
-                            <DeleteTransactionButton id={t.id} description={t.description} />
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Contas Variáveis */}
-              {data.transactions.filter(t => !t.recurring_id).length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Variáveis</h3>
-                  <div className="space-y-3">
-                    {data.transactions.filter(t => !t.recurring_id).map((t) => {
-                      const [year, month, day] = t.transaction_date.split('-')
-                      const formattedDate = `${day}/${month}`
-
-                      return (
-                        <div key={t.id} className="flex items-center justify-between p-4 glass rounded-2xl">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t.type === 'income' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
-                              {t.type === 'income' ? <ArrowUpIcon size={18} /> : <ArrowDownIcon size={18} />}
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm leading-tight">{t.description}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">{t.category} • {formattedDate}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`font-semibold ${t.type === 'income' ? 'text-green-500' : ''}`}>
-                              {t.type === 'income' ? '+' : '-'}R$ {Number(t.amount).toFixed(2)}
-                            </span>
-                            <DeleteTransactionButton id={t.id} description={t.description} />
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">Extrato do Período</h2>
+          <ExportPdfButton
+            transactions={data.transactions}
+            income={data.income}
+            expense={data.expense}
+            balance={data.balance}
+            periodLabel={`${new Date(filters.year ?? new Date().getFullYear(), filters.month ?? new Date().getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`}
+          />
         </div>
+        <TransactionList transactions={data.transactions} />
       </div>
     </div>
   )
 }
+

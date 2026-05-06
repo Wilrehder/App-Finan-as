@@ -32,6 +32,7 @@ export async function getDashboardData(filters?: DashboardFilters) {
     .lte('transaction_date', endDate)
     .order('transaction_date', { ascending: false })
     .order('created_at', { ascending: false })
+    .limit(100) // nunca traz mais de 100 por mês — proteção de performance
 
   if (filters?.type && filters.type !== 'all') {
     query = query.eq('type', filters.type)

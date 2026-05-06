@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Bell, BellOff, Loader2 } from "lucide-react"
 
-type Status = "loading" | "unsupported" | "denied" | "off" | "on"
+type Status = "loading" | "unsupported" | "denied" | "off" | "on" | "error"
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
@@ -12,9 +12,20 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
 }
 
+// Wrapper com timeout para não travar quando o SW ainda não está ativo
+function getSWRegistration(timeoutMs = 5000): Promise<ServiceWorkerRegistration> {
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Service Worker não está ativo. Tente após recarregar o app.")), timeoutMs)
+    ),
+  ])
+}
+
 export function PushToggle() {
   const [status, setStatus] = useState<Status>("loading")
   const [working, setWorking] = useState(false)
+  const [errorMsg, setErrorMsg] = useState("")
 
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -52,6 +63,7 @@ export function PushToggle() {
 
   const enable = async () => {
     setWorking(true)
+    setErrorMsg("")
     try {
       const perm = await Notification.requestPermission()
       if (perm !== "granted") {
@@ -59,7 +71,7 @@ export function PushToggle() {
         return
       }
 
-      const reg = await navigator.serviceWorker.ready
+      const reg = await getSWRegistration()
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(
@@ -76,10 +88,11 @@ export function PushToggle() {
       if (res.ok) {
         setStatus("on")
       } else {
-        console.error("Erro ao salvar subscription")
+        setErrorMsg("Erro ao salvar. Tente novamente.")
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao ativar push:", err)
+      setErrorMsg("Recarregue o app e tente novamente.")
     } finally {
       setWorking(false)
     }
@@ -87,8 +100,9 @@ export function PushToggle() {
 
   const disable = async () => {
     setWorking(true)
+    setErrorMsg("")
     try {
-      const reg = await navigator.serviceWorker.ready
+      const reg = await getSWRegistration()
       const sub = await reg.pushManager.getSubscription()
       if (sub) {
         await fetch("/api/push/unsubscribe", {
@@ -108,7 +122,7 @@ export function PushToggle() {
 
   const testNotification = async () => {
     if (Notification.permission === "granted") {
-      const reg = await navigator.serviceWorker.ready
+      const reg = await getSWRegistration()
       reg.showNotification("Prisma 💰", {
         body: "Notificações estão funcionando! 🎉",
         icon: "/icon-192x192.png",
@@ -125,6 +139,17 @@ export function PushToggle() {
           <Bell size={16} /> Notificações
         </span>
         <Loader2 size={16} className="animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (status === "error") {
+    return (
+      <div className="flex flex-col gap-1 py-1">
+        <span className="text-sm font-medium flex items-center gap-2">
+          <Bell size={16} /> Notificações
+        </span>
+        <p className="text-xs text-red-400">{errorMsg || "Erro inesperado. Recarregue o app."}</p>
       </div>
     )
   }
@@ -184,6 +209,10 @@ export function PushToggle() {
           )}
         </button>
       </div>
+
+      {errorMsg && status !== "on" && (
+        <p className="text-xs text-red-400">{errorMsg}</p>
+      )}
 
       {status === "on" && (
         <div className="flex items-center justify-between">

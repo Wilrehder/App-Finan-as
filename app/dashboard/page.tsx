@@ -3,7 +3,8 @@ import { syncRecurringTransactions } from "@/lib/sync"
 import { DashboardFilters } from "@/components/dashboard-filters"
 import { ExpenseChart } from "@/components/ExpenseChart"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { ArrowDownIcon, ArrowUpIcon, PieChart, TrendingUp, Settings } from "lucide-react"
+import { ArrowDownIcon, ArrowUpIcon, PieChart, TrendingUp, Settings, Calendar } from "lucide-react"
+import Link from "next/link"
 
 export const dynamic = 'force-dynamic'
 
@@ -29,8 +30,13 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
           <h1 className="text-2xl font-bold tracking-tight">Painel Financeiro</h1>
           <p className="text-sm text-muted-foreground">Analise suas movimentações</p>
         </div>
-        <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
-          <PieChart size={20} className="text-primary" />
+        <div className="flex items-center gap-3">
+          <Link href="/calendario" className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-primary hover:bg-secondary/80 transition-colors">
+            <Calendar size={20} />
+          </Link>
+          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
+            <PieChart size={20} className="text-primary" />
+          </div>
         </div>
       </div>
 

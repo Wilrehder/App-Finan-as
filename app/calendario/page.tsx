@@ -163,8 +163,8 @@ export default function CalendarioPage() {
                       
                       {/* Dots Container */}
                       <div className="flex gap-0.5 mt-0.5">
-                        {hasExpense && <div className="w-1.5 h-1.5 rounded-full bg-orange-400/80" />}
-                        {hasIncome && <div className="w-1.5 h-1.5 rounded-full bg-blue-400/80" />}
+                        {hasExpense && <div className="w-1.5 h-1.5 rounded-full bg-red-500/80" />}
+                        {hasIncome && <div className="w-1.5 h-1.5 rounded-full bg-green-500/80" />}
                       </div>
                     </div>
                   )
@@ -188,10 +188,10 @@ export default function CalendarioPage() {
             {selectedEvents.map(ev => (
               <div key={ev.id} className="flex justify-between items-center bg-background/50 p-4 rounded-2xl">
                 <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${ev.type === 'income' ? 'bg-blue-400' : 'bg-orange-400'}`} />
+                  <div className={`w-3 h-3 rounded-full ${ev.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`} />
                   <span className="font-medium">{ev.description}</span>
                 </div>
-                <span className={`font-semibold ${ev.type === 'income' ? 'text-blue-400' : 'text-foreground'}`}>
+                <span className={`font-semibold ${ev.type === 'income' ? 'text-green-500' : 'text-foreground'}`}>
                   {ev.type === 'income' ? '+' : '-'} R$ {ev.amount.toFixed(2)}
                 </span>
               </div>

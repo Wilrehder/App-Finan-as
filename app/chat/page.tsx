@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
-import { Send, Mic, Square, Trash2 } from "lucide-react"
+import { Send, Mic, Square, Trash2, Calendar } from "lucide-react"
+import Link from "next/link"
 import { parseUserIntent, confirmTransaction, confirmFixedTransaction, deleteLastTransaction } from "./actions"
 import { transcribeAudio } from "./audio-actions"
 import { Button } from "@/components/ui/button"
@@ -392,8 +393,21 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="chat-main-container fixed inset-0 bottom-[80px] max-w-md mx-auto flex flex-col pt-4">
-      <div className="flex-1 overflow-y-auto px-4 space-y-4 no-scrollbar pb-4">
+    <div className="chat-main-container fixed inset-0 bottom-[80px] max-w-md mx-auto flex flex-col">
+      {/* Header Fixo */}
+      <div className="px-6 py-4 flex items-center justify-between bg-background/80 backdrop-blur-lg border-b border-white/5 shrink-0 z-50">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center overflow-hidden">
+            <Image src="/logo.png" alt="Prisma" width={20} height={20} className="object-contain" />
+          </div>
+          <span className="font-bold text-lg tracking-tight">Prisma</span>
+        </div>
+        <Link href="/calendario" className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-foreground hover:bg-secondary/80 transition-colors">
+          <Calendar size={20} />
+        </Link>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 space-y-4 no-scrollbar pt-4 pb-4">
         {messages.length > 1 && (
           <div className="flex justify-center pt-2 pb-2">
             <button 

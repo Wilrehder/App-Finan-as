@@ -371,7 +371,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="fixed inset-0 bottom-[80px] max-w-md mx-auto flex flex-col pt-4">
+    <div className="chat-main-container fixed inset-0 bottom-[80px] max-w-md mx-auto flex flex-col pt-4">
       <div className="flex-1 overflow-y-auto px-4 space-y-4 no-scrollbar pb-4">
         {messages.length > 1 && (
           <div className="flex justify-center pt-2 pb-2">
@@ -459,7 +459,7 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Digite uma mensagem..."
-              className="flex-1 rounded-full h-14 bg-secondary border-none"
+              className="flex-1 rounded-full h-14 bg-secondary border-none text-base px-5"
               disabled={loading}
             />
           )}

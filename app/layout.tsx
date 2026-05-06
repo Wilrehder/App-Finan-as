@@ -24,6 +24,10 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Prisma",
   },
+  icons: {
+    icon: "/logo.png",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -34,9 +38,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen pb-24`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-[100dvh] overflow-hidden`}
       >
-        <main className="max-w-md mx-auto min-h-screen relative">
+        <main className="max-w-md mx-auto h-full relative overflow-y-auto no-scrollbar pb-[80px]">
           <InstallPrompt />
           {children}
         </main>

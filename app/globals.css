@@ -57,6 +57,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Prevent iOS auto-zoom on inputs */
+input, textarea {
+  font-size: 16px !important;
+}
+
+/* Prevent PWA pull-to-refresh and rubber banding */
+html, body {
+  overscroll-behavior-y: none;
+}
+
+/* Hide BottomNav and adjust chat container when keyboard is open */
+body:has(input:focus) .bottom-nav-container {
+  display: none !important;
+}
+
+body:has(input:focus) .chat-main-container {
+  bottom: 0 !important;
+}
+
 /* Glassmorphism utility */
 .glass {
   background: rgba(24, 24, 27, 0.6);

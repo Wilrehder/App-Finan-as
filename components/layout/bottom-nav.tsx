@@ -32,7 +32,7 @@ export function BottomNav() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-safe bg-background/80 backdrop-blur-lg border-t border-white/10 safe-area-bottom">
+    <div className="bottom-nav-container fixed bottom-0 left-0 right-0 z-50 p-4 pb-safe bg-background/80 backdrop-blur-lg border-t border-white/10 safe-area-bottom">
       <div className="flex justify-around items-center max-w-md mx-auto relative">
         {navItems.map((item) => {
           const isActive = pathname === item.href

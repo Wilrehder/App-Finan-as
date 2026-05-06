@@ -1,5 +1,5 @@
 -- 1. Create recurring_transactions table
-CREATE TABLE public.recurring_transactions (
+CREATE TABLE IF NOT EXISTS public.recurring_transactions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
@@ -10,6 +10,10 @@ CREATE TABLE public.recurring_transactions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Adicionando a coluna de dia útil
+ALTER TABLE public.recurring_transactions
+ADD COLUMN IF NOT EXISTS is_business_day BOOLEAN DEFAULT false;
+
 -- Enable RLS for recurring_transactions
 ALTER TABLE public.recurring_transactions ENABLE ROW LEVEL SECURITY;
 
@@ -19,4 +23,4 @@ CREATE POLICY "Users can manage their own recurring transactions"
 
 -- 2. Add recurring_id to existing transactions table
 ALTER TABLE public.transactions
-ADD COLUMN recurring_id UUID REFERENCES public.recurring_transactions(id) ON DELETE SET NULL;
+ADD COLUMN IF NOT EXISTS recurring_id UUID REFERENCES public.recurring_transactions(id) ON DELETE SET NULL;

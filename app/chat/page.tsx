@@ -240,7 +240,10 @@ export default function ChatPage() {
     setLoading(true)
 
     try {
-      if (forceAction === 'confirmar') {
+      if (forceAction === 'nav_settings') {
+        window.location.href = '/configuracoes'
+        return
+      } else if (forceAction === 'confirmar') {
         const response = await confirmTransaction(payload)
         setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
@@ -317,6 +320,7 @@ export default function ChatPage() {
         // Context Awareness: Check what the bot asked last
         const lastBotMessage = messages[messages.length - 1];
         let textToParse = userMessage.content;
+        let contextPayload = undefined;
         
         if (lastBotMessage && lastBotMessage.role === 'bot') {
           if (lastBotMessage.content.includes("Me diga de qual período você quer o relatório")) {
@@ -326,10 +330,15 @@ export default function ChatPage() {
           } else if (lastBotMessage.content.includes("Legal, uma receita. Qual o valor")) {
             textToParse = "receita " + textToParse;
           }
+          
+          // Pass context along if the bot was asking a follow up question
+          if (lastBotMessage.payload) {
+            contextPayload = lastBotMessage.payload;
+          }
         }
 
         // Intent parsing normal
-        const response = await parseUserIntent(textToParse)
+        const response = await parseUserIntent(textToParse, contextPayload)
         
         let newBotMsg: Message = {
           id: (Date.now() + 1).toString(),
@@ -338,7 +347,11 @@ export default function ChatPage() {
         }
 
         // Se for um relatório, não pede confirmação. Se for registro e sucesso, pede.
-        if (response.success && (response as any).payload && !(response as any).isReport && !(response as any).isDeleteRequest) {
+        if (response.success && (response as any).payload && (response as any).payload.action === 'open_settings') {
+          newBotMsg.options = [
+            { label: "Ir para Ajustes", action: "nav_settings", primary: true }
+          ]
+        } else if (response.success && (response as any).payload && !(response as any).isReport && !(response as any).isDeleteRequest) {
           const isFixed = (response as any).payload.intent === 'register_fixed';
           newBotMsg.options = [
             { label: "Cancelar", action: "cancelar" },

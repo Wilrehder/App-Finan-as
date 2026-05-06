@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { User, LogOut, Settings, Bell, Shield, CalendarClock, ArrowUpIcon, ArrowDownIcon } from "lucide-react"
 import { DeleteRecurringButton } from "@/components/delete-recurring-button"
+import { EditRecurringModal } from "@/components/edit-recurring-modal"
 
 export const dynamic = 'force-dynamic'
 
@@ -76,10 +77,15 @@ export default async function ConfiguracoesPage() {
                     </div>
                     <div>
                       <p className="font-medium text-sm">{rec.description}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Todo dia {rec.day_of_month} • R$ {Number(rec.amount).toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Todo {rec.is_business_day ? `${rec.day_of_month}º dia útil` : `dia ${rec.day_of_month}`} • R$ {Number(rec.amount).toFixed(2)}
+                      </p>
                     </div>
                   </div>
-                  <DeleteRecurringButton id={rec.id} />
+                  <div className="flex items-center gap-1">
+                    <EditRecurringModal item={rec} />
+                    <DeleteRecurringButton id={rec.id} />
+                  </div>
                 </div>
               ))
             )}

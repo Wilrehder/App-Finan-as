@@ -5,13 +5,22 @@ import { createClient } from "@/utils/supabase/server"
 import { parseMessage, ParsedIntent } from "@/lib/parser"
 import { syncRecurringTransactions } from "@/lib/sync"
 
-export async function parseUserIntent(message: string) {
-  const parsed = parseMessage(message)
+export async function parseUserIntent(message: string, context?: ParsedIntent) {
+  const parsed = parseMessage(message, context)
   
   if (!parsed) {
     return {
       success: false,
       message: "Olá, sou o Prisma Chat! 👋 Posso te dar algumas sugestões do que posso fazer?"
+    }
+  }
+
+  if (parsed.intent === 'manage_fixed') {
+    return {
+      success: true,
+      message: "Aqui está um atalho para você visualizar e editar todas as suas contas e rendas fixas:",
+      isReport: true, // we don't want confirmation buttons
+      payload: { action: 'open_settings' } // we will catch this in the UI
     }
   }
 
@@ -28,12 +37,31 @@ export async function parseUserIntent(message: string) {
     }
   }
 
+  // Se for incomplete_fixed:
+  if (parsed.intent === 'incomplete_fixed') {
+    if (!parsed.amount) {
+      const typeStr = parsed.type === 'income' ? 'receita fixa' : 'despesa fixa';
+      return {
+        success: true,
+        message: `Qual ${typeStr} você quer cadastrar e qual o valor?`,
+        payload: parsed
+      }
+    } else if (!parsed.day_of_month) {
+      return {
+        success: true,
+        message: `Certo, ${parsed.description} de R$ ${parsed.amount?.toFixed(2)}. E qual o dia de cobrança todo mês? (ex: 'dia 5' ou 'quinto dia útil')`,
+        payload: parsed
+      }
+    }
+  }
+
   // Se for register_fixed:
   if (parsed.intent === 'register_fixed') {
     const typeStr = parsed.type === 'income' ? 'RECEITA FIXA' : 'DESPESA FIXA'
+    const dayStr = parsed.is_business_day ? `${parsed.day_of_month}º dia útil` : `dia ${parsed.day_of_month}`
     return {
       success: true,
-      message: `Entendi que você quer registrar uma ${typeStr} de R$ ${parsed.amount?.toFixed(2)} em ${parsed.category} para todo dia ${parsed.day_of_month}. Podemos confirmar?`,
+      message: `Entendi que você quer registrar uma ${typeStr} de R$ ${parsed.amount?.toFixed(2)} em ${parsed.category} para todo ${dayStr}. Podemos confirmar?`,
       payload: parsed
     }
   }
@@ -146,6 +174,7 @@ export async function confirmFixedTransaction(parsed: ParsedIntent) {
       category: parsed.category,
       description: parsed.description,
       day_of_month: parsed.day_of_month,
+      is_business_day: parsed.is_business_day || false,
     })
 
   if (dbError) {
@@ -163,10 +192,11 @@ export async function confirmFixedTransaction(parsed: ParsedIntent) {
   revalidatePath("/configuracoes")
 
   const typeStr = parsed.type === 'income' ? 'Receita Fixa' : 'Despesa Fixa'
+  const dayStr = parsed.is_business_day ? `${parsed.day_of_month}º dia útil` : `dia ${parsed.day_of_month}`
   
   return {
     success: true,
-    message: `🔄 ${typeStr} de R$ ${parsed.amount?.toFixed(2)} salva com sucesso para todo dia ${parsed.day_of_month}! O lançamento deste mês já foi gerado.`
+    message: `🔄 ${typeStr} de R$ ${parsed.amount?.toFixed(2)} salva com sucesso para todo ${dayStr}! O lançamento deste mês já foi gerado.`
   }
 }
 

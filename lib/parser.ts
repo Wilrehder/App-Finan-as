@@ -1,5 +1,5 @@
 export type TransactionType = 'income' | 'expense';
-export type ChatIntentType = 'register' | 'register_fixed' | 'report' | 'delete' | 'unknown';
+export type ChatIntentType = 'register' | 'register_fixed' | 'incomplete_fixed' | 'report' | 'manage_fixed' | 'delete' | 'unknown';
 
 export interface ParsedIntent {
   intent: ChatIntentType;
@@ -11,6 +11,7 @@ export interface ParsedIntent {
   description?: string;
   transaction_date?: string; // Formato YYYY-MM-DD
   day_of_month?: number; // Para fixed
+  is_business_day?: boolean; // Para fixed
   
   // Para report:
   report_start_date?: string; // YYYY-MM-DD
@@ -59,9 +60,26 @@ function formatDate(date: Date) {
   return date.toISOString().split('T')[0];
 }
 
-export function parseMessage(message: string): ParsedIntent | null {
+export function parseMessage(message: string, context?: Partial<ParsedIntent>): ParsedIntent | null {
   const normalized = message.trim().toLowerCase().replace(/\s+/g, ' ');
   const now = new Date();
+
+  // Verifica se a intenção é gerenciar/editar contas fixas
+  if (
+    normalized.match(/(editar|gerenciar|ver|visualizar|alterar|modificar)\s+.*(fixa|fixo|recorrente)/) ||
+    normalized.match(/minhas\s+(contas\s+fixas|despesas\s+fixas|receitas\s+fixas)/)
+  ) {
+    return { intent: 'manage_fixed' };
+  }
+
+  // Verifica se é intenção de Registro Fixo
+  let isFixed = context?.intent === 'register_fixed' || context?.intent === 'incomplete_fixed';
+  for (const word of FIXED_KEYWORDS) {
+    if (normalized.includes(word)) {
+      isFixed = true;
+      break;
+    }
+  }
 
   // Verifica se é intenção de Excluir / Desfazer
   for (const word of DELETE_KEYWORDS) {
@@ -73,8 +91,8 @@ export function parseMessage(message: string): ParsedIntent | null {
   // Tenta encontrar um valor monetário para saber se é intenção de registro
   // Padrões: 50, 50.00, 50,00, R$50, R$ 50,00. Evita anos sozinhos como 2026.
   const amountMatch = normalized.match(/(?:r\$|reais)?\s*(?<!\b202)\b(\d+(?:[.,]\d{1,2})?)\b(?!\s*anos?)/);
-  let hasAmount = false;
-  let amount = 0;
+  let hasAmount = context?.amount ? true : false;
+  let amount = context?.amount || 0;
   if (amountMatch) {
     amount = parseFloat(amountMatch[1].replace(',', '.'));
     if (!isNaN(amount) && amount > 0) {
@@ -172,10 +190,18 @@ export function parseMessage(message: string): ParsedIntent | null {
   }
 
   // Intenção de Registro
+  // Se for "despesa fixa" puro, sem amount, é incompleto.
+  if (!hasAmount && isFixed) {
+    return {
+      intent: 'incomplete_fixed',
+      type: normalized.includes('receita') || normalized.includes('ganho') ? 'income' : 'expense'
+    };
+  }
+
   if (!hasAmount) return null;
 
   // Inferir o tipo
-  let type: TransactionType = 'expense'; // default despesa
+  let type: TransactionType = context?.type || 'expense'; // default despesa
   for (const word of INCOME_KEYWORDS) {
     if (normalized.includes(word)) { type = 'income'; break; }
   }
@@ -183,7 +209,7 @@ export function parseMessage(message: string): ParsedIntent | null {
   // mas vamos apenas garantir que se tem verbo de receita seja receita.
   
   // Inferir a categoria
-  let category = 'Outros';
+  let category = context?.category || 'Outros';
   for (const [catName, keywords] of Object.entries(CATEGORY_MAP)) {
     if (keywords.some(k => normalized.includes(k))) {
       category = catName; break;
@@ -192,37 +218,64 @@ export function parseMessage(message: string): ParsedIntent | null {
 
   // Inferir a data da transação normal
   let transaction_date = new Date(now);
-  let day_of_month = now.getDate();
+  let day_of_month = context?.day_of_month;
+  let is_business_day = context?.is_business_day || false;
   
   if (normalized.includes('anteontem')) {
     transaction_date.setDate(transaction_date.getDate() - 2);
   } else if (normalized.includes('ontem')) {
     transaction_date.setDate(transaction_date.getDate() - 1);
   } else {
-    const dayMatch = normalized.match(/(?:dia|em)\s+(\d{1,2})\b/);
-    if (dayMatch) {
-      const day = parseInt(dayMatch[1]);
-      if (day > 0 && day <= 31) {
-        day_of_month = day;
-        transaction_date.setDate(day);
-        if (day > now.getDate()) {
-          transaction_date.setMonth(transaction_date.getMonth() - 1);
+    // Detecta dia util
+    const businessDayMatch = normalized.match(/(?:(\d{1,2})[oº]?\s*dia\s*util|dia\s*util\s*(\d{1,2}))/);
+    if (businessDayMatch) {
+      day_of_month = parseInt(businessDayMatch[1] || businessDayMatch[2]);
+      is_business_day = true;
+    } else {
+      const dayMatch = normalized.match(/(?:dia|em)\s+(\d{1,2})\b/);
+      if (dayMatch) {
+        const day = parseInt(dayMatch[1]);
+        if (day > 0 && day <= 31) {
+          day_of_month = day;
+          transaction_date.setDate(day);
+          if (day > now.getDate()) {
+            transaction_date.setMonth(transaction_date.getMonth() - 1);
+          }
         }
       }
     }
   }
 
-  // Verifica se é intenção de Registro Fixo
-  let isFixed = false;
-  for (const word of FIXED_KEYWORDS) {
-    if (normalized.includes(word)) {
-      isFixed = true;
-      break;
+  // Se é fixed e nós ainda não temos o day_of_month, definimos intent como incomplete
+  if (isFixed && !day_of_month) {
+    // A descrição limpa
+    let description = context?.description || message
+      .replace(/(?:r\$)?\s*\d+(?:[.,]\d+)?/ig, '')
+      .replace(/\breais\b/ig, '')
+      .replace(/\b(ontem|anteontem|hoje)\b/ig, '')
+      .replace(/(?:dia|em)\s+\d{1,2}\b/ig, '')
+      .trim();
+
+    description = description.replace(/^(gasto|despesa|receita|ganho|gastei|comprei|paguei|recebi|ganhei|foi|deu)\s+/i, '');
+
+    if (!description) {
+      description = category;
+    } else {
+      description = description.charAt(0).toUpperCase() + description.slice(1);
     }
+
+    return {
+      intent: 'incomplete_fixed',
+      type,
+      amount,
+      category,
+      description
+    };
   }
 
+  // Verifica se é intenção de Registro Fixo
   // A descrição limpa
-  let description = message
+  let description = context?.description || message
     .replace(/(?:r\$)?\s*\d+(?:[.,]\d+)?/ig, '')
     .replace(/\breais\b/ig, '')
     .replace(/\b(ontem|anteontem|hoje)\b/ig, '')
@@ -244,6 +297,7 @@ export function parseMessage(message: string): ParsedIntent | null {
     category,
     description,
     transaction_date: formatDate(transaction_date),
-    day_of_month
+    day_of_month: isFixed ? day_of_month : undefined,
+    is_business_day
   };
 }

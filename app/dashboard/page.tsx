@@ -3,7 +3,7 @@ import { syncRecurringTransactions } from "@/lib/sync"
 import { DashboardFilters } from "@/components/dashboard-filters"
 import { ExpenseChart } from "@/components/ExpenseChart"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { ArrowDownIcon, ArrowUpIcon, PieChart, TrendingUp } from "lucide-react"
+import { ArrowDownIcon, ArrowUpIcon, PieChart, TrendingUp, Settings } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
 
@@ -114,7 +114,12 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
               {/* Contas Fixas */}
               {data.transactions.filter(t => t.recurring_id).length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Fixas</h3>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Fixas</h3>
+                    <a href="/configuracoes" className="text-xs text-primary font-medium hover:underline flex items-center gap-1">
+                      Gerenciar <Settings size={12} />
+                    </a>
+                  </div>
                   <div className="space-y-3">
                     {data.transactions.filter(t => t.recurring_id).map((t) => {
                       const [year, month, day] = t.transaction_date.split('-')

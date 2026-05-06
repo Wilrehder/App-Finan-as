@@ -54,6 +54,8 @@ export default function ChatPage() {
   const animationRef = useRef<number | null>(null)
   // Stream cacheado — pedimos permissão do mic uma só vez
   const streamRef = useRef<MediaStream | null>(null)
+  // MIME type detectado uma vez e reutilizado
+  const mimeTypeRef = useRef<string>('')
 
   const playSound = (type: 'start' | 'stop' | 'send') => {
     try {
@@ -92,11 +94,18 @@ export default function ChatPage() {
 
   const startRecording = async () => {
     try {
-      // Reutiliza o stream existente se já tiver permissão — evita pedir mic toda vez
-      if (!streamRef.current || streamRef.current.getTracks().every(t => t.readyState === 'ended')) {
-        streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // Reutiliza o stream se estiver vivo; caso contrário pede novo (iOS invalida ao ir para background)
+      if (!isStreamAlive(streamRef.current)) {
+        killStream(); // garante limpeza antes de pedir novo
+        streamRef.current = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            sampleRate: 44100,
+          }
+        });
       }
-      const stream = streamRef.current
+      const stream = streamRef.current!
       
       // Setup Audio Context for Visualizer
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -139,7 +148,9 @@ export default function ChatPage() {
         }
       };
 
-      const mediaRecorder = new MediaRecorder(stream)
+      const mimeType = getSupportedMimeType();
+      const mediaRecorderOptions = mimeType ? { mimeType } : {};
+      const mediaRecorder = new MediaRecorder(stream, mediaRecorderOptions)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
 
@@ -150,9 +161,12 @@ export default function ChatPage() {
       }
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        const recordedMime = mimeType || 'audio/webm';
+        // iOS grava mp4, manda com extensão correta para o Whisper entender
+        const ext = recordedMime.includes('mp4') || recordedMime.includes('aac') ? 'm4a' : 'webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: recordedMime })
         const formData = new FormData()
-        formData.append('audio', audioBlob, 'recording.webm')
+        formData.append('audio', audioBlob, `recording.${ext}`)
         
         setLoading(true)
         const res = await transcribeAudio(formData)
@@ -194,13 +208,48 @@ export default function ChatPage() {
     }
   }
 
+  // ─── Detecta MIME type suportado (iOS usa audio/mp4, outros usam webm) ────────────────
+  function getSupportedMimeType(): string {
+    if (mimeTypeRef.current) return mimeTypeRef.current;
+    const candidates = [
+      'audio/mp4',          // iOS Safari
+      'audio/aac',          // iOS fallback
+      'audio/webm;codecs=opus', // Chrome/Android
+      'audio/webm',         // Chrome fallback
+      'audio/ogg',          // Firefox
+    ];
+    for (const type of candidates) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        mimeTypeRef.current = type;
+        return type;
+      }
+    }
+    mimeTypeRef.current = ''; // browser decides
+    return '';
+  }
+
+  // ─── Verifica se o stream em cache ainda está válido ──────────────────────────────
+  function isStreamAlive(stream: MediaStream | null): boolean {
+    if (!stream) return false;
+    const tracks = stream.getTracks();
+    return tracks.length > 0 && tracks.every(t => t.readyState === 'live');
+  }
+
+  // ─── Descarta stream morto e limpa a referência ───────────────────────────────
+  function killStream() {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+  }
+
   // Libera o stream apenas quando o componente desmonta
   useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop())
-      }
-    }
+      killStream();
+      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
   }, [])
 
   const scrollToBottom = () => {
@@ -632,6 +681,91 @@ export default function ChatPage() {
                 className="rounded-full flex items-center gap-2"
               >
                 <Trash2 size={16} /> Apagar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Modal de edição de valor/data ─── */}
+      {editModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setEditModal(null)}>
+          <div
+            className="w-full max-w-md bg-background rounded-t-3xl p-6 pb-10 space-y-5 animate-in slide-in-from-bottom-4 duration-300"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-2" />
+            <h3 className="text-lg font-bold text-center">Editar Lançamento</h3>
+
+            {/* Campo: Valor */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">Valor (R$)</label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={editAmount}
+                onChange={e => setEditAmount(e.target.value)}
+                placeholder="Ex: 1500"
+                className="h-12 rounded-xl text-base"
+              />
+            </div>
+
+            {/* Campo: Data ou Dia do mês */}
+            <div className="space-y-1.5">
+              {editModal.payload.intent === 'register_fixed' ? (
+                <>
+                  <label className="text-sm font-medium text-muted-foreground">Dia de cobrança (1–31)</label>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={31}
+                    value={editDate}
+                    onChange={e => setEditDate(e.target.value)}
+                    placeholder="Ex: 10"
+                    className="h-12 rounded-xl text-base"
+                  />
+                </>
+              ) : (
+                <>
+                  <label className="text-sm font-medium text-muted-foreground">Data</label>
+                  <Input
+                    type="date"
+                    value={editDate}
+                    onChange={e => setEditDate(e.target.value)}
+                    className="h-12 rounded-xl text-base"
+                  />
+                </>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setEditModal(null)}>
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1 rounded-xl h-12"
+                onClick={() => {
+                  if (!editModal) return;
+                  const newAmount = parseFloat(editAmount);
+                  if (isNaN(newAmount) || newAmount <= 0) return;
+
+                  const updatedPayload = {
+                    ...editModal.payload,
+                    amount: newAmount,
+                    ...(editModal.payload.intent === 'register_fixed'
+                      ? { day_of_month: parseInt(editDate) || editModal.payload.day_of_month }
+                      : { transaction_date: editDate || editModal.payload.transaction_date }),
+                  };
+
+                  // Atualiza o payload da mensagem existente
+                  setMessages(prev => prev.map(m =>
+                    m.id === editModal.msgId ? { ...m, payload: updatedPayload } : m
+                  ));
+                  setEditModal(null);
+                }}
+              >
+                ✅ Salvar
               </Button>
             </div>
           </div>

@@ -448,7 +448,7 @@ export default function ChatPage() {
                 {msg.role === "bot" && (
                   <div className="flex items-center gap-2 mb-2 opacity-70 text-xs font-semibold tracking-wide uppercase">
                     <Image src="/logo.png" alt="Atlas" width={14} height={14} className="object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" /> 
-                    Atlas
+                    Agente
                   </div>
                 )}
                 <p className="text-sm leading-relaxed">{msg.content}</p>

@@ -4,6 +4,8 @@ import { DashboardFilters } from "@/components/dashboard-filters"
 import { ExpenseChart } from "@/components/ExpenseChart"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { ArrowDownIcon, ArrowUpIcon, PieChart, TrendingUp, Settings, Calendar } from "lucide-react"
+import { DeleteTransactionButton } from "@/components/delete-transaction-button"
+import { ExportPdfButton } from "@/components/export-pdf-button"
 import Link from "next/link"
 
 export const revalidate = 30 // revalida a cada 30 segundos
@@ -37,6 +39,13 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
           <Link href="/calendario" className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-primary hover:bg-secondary/80 transition-colors">
             <Calendar size={20} />
           </Link>
+          <ExportPdfButton
+            transactions={data.transactions}
+            income={data.income}
+            expense={data.expense}
+            balance={data.balance}
+            periodLabel={`${new Date(filters.year ?? new Date().getFullYear(), filters.month ?? new Date().getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`}
+          />
           <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
             <PieChart size={20} className="text-primary" />
           </div>
@@ -146,8 +155,11 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
                               <p className="text-xs text-muted-foreground mt-0.5">{t.category} • {formattedDate}</p>
                             </div>
                           </div>
-                          <div className={`font-semibold ${t.type === 'income' ? 'text-green-500' : ''}`}>
-                            {t.type === 'income' ? '+' : '-'}R$ {Number(t.amount).toFixed(2)}
+                          <div className="flex items-center gap-2">
+                            <span className={`font-semibold ${t.type === 'income' ? 'text-green-500' : ''}`}>
+                              {t.type === 'income' ? '+' : '-'}R$ {Number(t.amount).toFixed(2)}
+                            </span>
+                            <DeleteTransactionButton id={t.id} description={t.description} />
                           </div>
                         </div>
                       )
@@ -176,8 +188,11 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
                               <p className="text-xs text-muted-foreground mt-0.5">{t.category} • {formattedDate}</p>
                             </div>
                           </div>
-                          <div className={`font-semibold ${t.type === 'income' ? 'text-green-500' : ''}`}>
-                            {t.type === 'income' ? '+' : '-'}R$ {Number(t.amount).toFixed(2)}
+                          <div className="flex items-center gap-2">
+                            <span className={`font-semibold ${t.type === 'income' ? 'text-green-500' : ''}`}>
+                              {t.type === 'income' ? '+' : '-'}R$ {Number(t.amount).toFixed(2)}
+                            </span>
+                            <DeleteTransactionButton id={t.id} description={t.description} />
                           </div>
                         </div>
                       )

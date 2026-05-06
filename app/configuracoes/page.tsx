@@ -2,11 +2,12 @@ import { createClient } from "@/utils/supabase/server"
 import { logout } from "../login/actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { User, LogOut, Settings, Bell, Shield, CalendarClock, ArrowUpIcon, ArrowDownIcon } from "lucide-react"
+import { User, LogOut, Settings, Shield, CalendarClock, ArrowUpIcon, ArrowDownIcon } from "lucide-react"
 import { DeleteRecurringButton } from "@/components/delete-recurring-button"
 import { EditRecurringModal } from "@/components/edit-recurring-modal"
+import { PushToggle } from "@/components/push-toggle"
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 30
 
 export default async function ConfiguracoesPage() {
   const supabase = await createClient()
@@ -49,12 +50,7 @@ export default async function ConfiguracoesPage() {
                 <div className="absolute right-1 top-1 w-4 h-4 bg-primary-foreground rounded-full" />
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium flex items-center gap-2"><Bell size={16} /> Notificações</span>
-              <div className="w-10 h-6 bg-secondary rounded-full relative border border-input">
-                <div className="absolute left-1 top-1 w-4 h-4 bg-muted-foreground rounded-full" />
-              </div>
-            </div>
+            <PushToggle />
           </CardContent>
         </Card>
 

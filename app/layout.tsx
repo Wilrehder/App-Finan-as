@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { InstallPrompt } from "@/components/install-prompt";
+import { NavigationProgress } from "@/components/layout/navigation-progress";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,6 +41,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-[100dvh] overflow-hidden`}
       >
+        <NavigationProgress />
         <main className="max-w-md mx-auto h-full relative overflow-y-auto no-scrollbar pb-[80px]">
           <InstallPrompt />
           {children}

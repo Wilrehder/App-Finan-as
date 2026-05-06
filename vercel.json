@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/push/send?secret=prisma_cron_2026_secure",
+      "schedule": "0 11 * * *"
+    }
+  ]
+}

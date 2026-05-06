@@ -1,8 +1,16 @@
 {
   "crons": [
     {
-      "path": "/api/push/send?secret=prisma_cron_2026_secure",
-      "schedule": "0 11 * * *"
+      "path": "/api/push/send",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/push/send",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/push/send",
+      "schedule": "0 23 * * 0"
     }
   ]
 }

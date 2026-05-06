@@ -114,7 +114,14 @@ export async function GET(req: NextRequest) {
     process.env.VAPID_PRIVATE_KEY!
   );
 
-  const secret = req.headers.get('x-cron-secret') ?? req.nextUrl.searchParams.get('secret');
+  // Vercel Cron envia: Authorization: Bearer <CRON_SECRET>
+  // Também aceita header customizado x-cron-secret e query param secret (testes manuais)
+  const authHeader = req.headers.get('authorization');
+  const bearerSecret = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const secret = bearerSecret
+    ?? req.headers.get('x-cron-secret')
+    ?? req.nextUrl.searchParams.get('secret');
+
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }

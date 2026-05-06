@@ -28,12 +28,26 @@ export function PushToggle() {
       return
     }
 
-    // Verifica se já tem subscription ativa
-    navigator.serviceWorker.ready.then((reg) => {
-      reg.pushManager.getSubscription().then((sub) => {
+    // Timeout de segurança: se o SW demorar mais de 4s para ativar,
+    // mostra o toggle como "off" ao invés de ficar girando para sempre
+    const timeout = setTimeout(() => {
+      setStatus("off")
+    }, 4000)
+
+    navigator.serviceWorker.ready
+      .then((reg) => {
+        clearTimeout(timeout)
+        return reg.pushManager.getSubscription()
+      })
+      .then((sub) => {
         setStatus(sub ? "on" : "off")
       })
-    })
+      .catch(() => {
+        clearTimeout(timeout)
+        setStatus("off")
+      })
+
+    return () => clearTimeout(timeout)
   }, [])
 
   const enable = async () => {

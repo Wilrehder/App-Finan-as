@@ -12,12 +12,21 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
 }
 
-// Wrapper com timeout para não travar quando o SW ainda não está ativo
-function getSWRegistration(timeoutMs = 5000): Promise<ServiceWorkerRegistration> {
+// Tenta pegar o registro do SW de qualquer estado (instalando, esperando ou ativo)
+// Muito mais confiável do que .ready que exige SW totalmente ativado
+async function getSWRegistration(): Promise<ServiceWorkerRegistration> {
+  // Tenta primeiro um registro já existente (não exige ativação completa)
+  const existing = await navigator.serviceWorker.getRegistration("/")
+  if (existing) return existing
+
+  // Fallback: registra manualmente e aguarda com timeout
   return Promise.race([
-    navigator.serviceWorker.ready,
+    navigator.serviceWorker.register("/sw.js", { scope: "/" }),
     new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Service Worker não está ativo. Tente após recarregar o app.")), timeoutMs)
+      setTimeout(
+        () => reject(new Error("Service Worker indisponível. Reabra o app.")),
+        6000
+      )
     ),
   ])
 }
@@ -45,13 +54,15 @@ export function PushToggle() {
       setStatus("off")
     }, 4000)
 
-    navigator.serviceWorker.ready
+    navigator.serviceWorker
+      .getRegistration("/")
       .then((reg) => {
         clearTimeout(timeout)
+        if (!reg) { setStatus("off"); return }
         return reg.pushManager.getSubscription()
       })
       .then((sub) => {
-        setStatus(sub ? "on" : "off")
+        if (sub !== undefined) setStatus(sub ? "on" : "off")
       })
       .catch(() => {
         clearTimeout(timeout)

@@ -161,10 +161,17 @@ export default function ChatPage() {
       }
 
       mediaRecorder.onstop = async () => {
-        const recordedMime = mimeType || 'audio/webm';
-        // iOS grava mp4, manda com extensão correta para o Whisper entender
-        const ext = recordedMime.includes('mp4') || recordedMime.includes('aac') ? 'm4a' : 'webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: recordedMime })
+        // IMPORTANTE: usar mediaRecorder.mimeType (formato REAL gravado pelo browser)
+        // não o mimeType que pedimos — no iOS eles podem divergir
+        const actualMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
+
+        // Deriva extensão correta para o Whisper a partir do MIME real
+        let ext = 'webm';
+        if (actualMime.includes('mp4') || actualMime.includes('aac') || actualMime.includes('m4a')) ext = 'm4a';
+        else if (actualMime.includes('ogg') || actualMime.includes('oga')) ext = 'ogg';
+        else if (actualMime.includes('wav')) ext = 'wav';
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: actualMime })
         const formData = new FormData()
         formData.append('audio', audioBlob, `recording.${ext}`)
         

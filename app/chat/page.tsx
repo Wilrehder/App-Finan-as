@@ -49,6 +49,8 @@ export default function ChatPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const animationRef = useRef<number | null>(null)
+  // Stream cacheado — pedimos permissão do mic uma só vez
+  const streamRef = useRef<MediaStream | null>(null)
 
   const playSound = (type: 'start' | 'stop' | 'send') => {
     try {
@@ -87,7 +89,11 @@ export default function ChatPage() {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // Reutiliza o stream existente se já tiver permissão — evita pedir mic toda vez
+      if (!streamRef.current || streamRef.current.getTracks().every(t => t.readyState === 'ended')) {
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true })
+      }
+      const stream = streamRef.current
       
       // Setup Audio Context for Visualizer
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -123,7 +129,7 @@ export default function ChatPage() {
           const percent = value / 255;
           const height = Math.max(4, percent * canvas.height);
           
-          ctx.fillStyle = '#ef4444'; // Tailwind red-500
+          ctx.fillStyle = '#ef4444';
           ctx.beginPath();
           ctx.roundRect(i * (barWidth + gap), (canvas.height - height) / 2, barWidth, height, 2);
           ctx.fill();
@@ -163,7 +169,6 @@ export default function ChatPage() {
       setIsRecording(true)
       playSound('start')
       
-      // Start drawing on next tick when canvas is rendered
       setTimeout(() => {
         drawVisualizer();
       }, 50)
@@ -179,13 +184,21 @@ export default function ChatPage() {
       if (audioCtxRef.current) {
         audioCtxRef.current.close().catch(() => {});
       }
-      
       mediaRecorderRef.current.stop()
       setIsRecording(false)
       playSound('stop')
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+      // NÃO para as tracks aqui — mantém a permissão ativa para não pedir de novo
     }
   }
+
+  // Libera o stream apenas quando o componente desmonta
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop())
+      }
+    }
+  }, [])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -397,8 +410,9 @@ export default function ChatPage() {
       {/* Header Fixo */}
       <div className="px-6 py-4 flex items-center justify-between bg-background/80 backdrop-blur-lg border-b border-white/5 shrink-0 z-50">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center overflow-hidden">
-            <Image src="/logo.png" alt="Atlas" width={20} height={20} className="object-contain" />
+          {/* Logo sem fundo colorido para que a logo branca apareça corretamente */}
+          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+            <Image src="/logo.png" alt="Atlas" width={32} height={32} className="object-contain" />
           </div>
           <span className="font-bold text-lg tracking-tight">Atlas</span>
         </div>

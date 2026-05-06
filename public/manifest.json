@@ -2,7 +2,7 @@
   "name": "Atlas",
   "short_name": "Atlas",
   "description": "Controle financeiro inteligente através de um chat.",
-  "start_url": "/chat",
+  "start_url": "/login",
   "display": "standalone",
   "background_color": "#09090b",
   "theme_color": "#09090b",

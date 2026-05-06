@@ -110,28 +110,68 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
               Nenhuma transação encontrada para este filtro.
             </div>
           ) : (
-            data.transactions.map((t) => {
-              // Extract date securely
-              const [year, month, day] = t.transaction_date.split('-')
-              const formattedDate = `${day}/${month}`
+            <>
+              {/* Contas Fixas */}
+              {data.transactions.filter(t => t.recurring_id).length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Fixas</h3>
+                  <div className="space-y-3">
+                    {data.transactions.filter(t => t.recurring_id).map((t) => {
+                      const [year, month, day] = t.transaction_date.split('-')
+                      const formattedDate = `${day}/${month}`
 
-              return (
-                <div key={t.id} className="flex items-center justify-between p-4 glass rounded-2xl">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t.type === 'income' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
-                      {t.type === 'income' ? <ArrowUpIcon size={18} /> : <ArrowDownIcon size={18} />}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm leading-tight">{t.description}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{t.category} • {formattedDate}</p>
-                    </div>
-                  </div>
-                  <div className={`font-semibold ${t.type === 'income' ? 'text-green-500' : ''}`}>
-                    {t.type === 'income' ? '+' : '-'}R$ {Number(t.amount).toFixed(2)}
+                      return (
+                        <div key={t.id} className="flex items-center justify-between p-4 glass rounded-2xl border border-white/5 relative overflow-hidden">
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/40" />
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t.type === 'income' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                              {t.type === 'income' ? <ArrowUpIcon size={18} /> : <ArrowDownIcon size={18} />}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm leading-tight">{t.description}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{t.category} • {formattedDate}</p>
+                            </div>
+                          </div>
+                          <div className={`font-semibold ${t.type === 'income' ? 'text-green-500' : ''}`}>
+                            {t.type === 'income' ? '+' : '-'}R$ {Number(t.amount).toFixed(2)}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
-              )
-            })
+              )}
+
+              {/* Contas Variáveis */}
+              {data.transactions.filter(t => !t.recurring_id).length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Variáveis</h3>
+                  <div className="space-y-3">
+                    {data.transactions.filter(t => !t.recurring_id).map((t) => {
+                      const [year, month, day] = t.transaction_date.split('-')
+                      const formattedDate = `${day}/${month}`
+
+                      return (
+                        <div key={t.id} className="flex items-center justify-between p-4 glass rounded-2xl">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t.type === 'income' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                              {t.type === 'income' ? <ArrowUpIcon size={18} /> : <ArrowDownIcon size={18} />}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm leading-tight">{t.description}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{t.category} • {formattedDate}</p>
+                            </div>
+                          </div>
+                          <div className={`font-semibold ${t.type === 'income' ? 'text-green-500' : ''}`}>
+                            {t.type === 'income' ? '+' : '-'}R$ {Number(t.amount).toFixed(2)}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

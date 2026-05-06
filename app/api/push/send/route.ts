@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import webpush, { PushSubscription } from "web-push"
 import { createClient } from "@/utils/supabase/server"
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
-
 function getNthBusinessDay(year: number, month: number, nth: number): number {
   let count = 0
   let day = 1
@@ -27,6 +21,13 @@ function getNthBusinessDay(year: number, month: number, nth: number): number {
 }
 
 export async function GET(req: NextRequest) {
+  // Setup VAPID aqui (runtime) e não no topo do módulo (build time)
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT!,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  )
+
   // Protege a rota — só o cron da Vercel (com o secret) pode chamar
   const secret = req.headers.get("x-cron-secret") ?? req.nextUrl.searchParams.get("secret")
   if (secret !== process.env.CRON_SECRET) {

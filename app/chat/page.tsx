@@ -94,20 +94,28 @@ export default function ChatPage() {
 
   const startRecording = async () => {
     try {
-      // No iOS, reuso de stream pode silenciar o microfone mesmo com readyState='live'.
-      // getUserMedia com permissão já concedida NÃO mostra prompt — retorna stream fresco silenciosamente.
-      // Por isso SEMPRE pedimos um novo stream a cada gravação.
+      // Pega o novo stream PRIMEIRO, depois libera o antigo.
+      // Isso evita a race condition do iOS onde killStream() solta o mic e
+      // getUserMedia() tenta pegar antes do OS liberar o recurso.
+      let newStream: MediaStream;
+      try {
+        newStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            sampleRate: 44100,
+            channelCount: 1,
+          }
+        });
+      } catch {
+        // Fallback: tenta sem constraints especiais (mais compatível com iOS)
+        newStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+
+      // Só libera o stream antigo depois de ter o novo
       killStream();
-      streamRef.current = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100,
-          // channelCount 1 = mono (menor arquivo, mesma qualidade para voz)
-          channelCount: 1,
-        }
-      });
-      const stream = streamRef.current;
+      streamRef.current = newStream;
+      const stream = newStream;
 
       // AudioContext — no iOS começa em estado 'suspended', resume() é obrigatório
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;

@@ -19,37 +19,37 @@ export interface ParsedIntent {
   report_period_name?: string;
 }
 
-const EXPENSE_KEYWORDS = ['gasto', 'gastos', 'despesa', 'despesas', 'gastei', 'comprei', 'paguei', 'ifood', 'uber', 'saída', 'pagamento', 'deu', 'custou'];
-const INCOME_KEYWORDS = ['receita', 'receitas', 'ganho', 'ganhos', 'recebi', 'ganhei', 'salário', 'pix', 'entrada', 'caiu'];
-const REPORT_KEYWORDS = ['relatório', 'resumo', 'extrato', 'saldo', 'balanço', 'total'];
+const EXPENSE_KEYWORDS = ['gasto', 'gastos', 'despesa', 'despesas', 'gastei', 'comprei', 'paguei', 'ifood', 'uber', 'saida', 'pagamento', 'deu', 'custou'];
+const INCOME_KEYWORDS = ['receita', 'receitas', 'ganho', 'ganhos', 'recebi', 'ganhei', 'salario', 'pix', 'entrada', 'caiu'];
+const REPORT_KEYWORDS = ['relatorio', 'resumo', 'extrato', 'saldo', 'balanco', 'total'];
 const REPORT_PHRASES = ['quanto gastei', 'quanto recebi', 'meus gastos', 'minhas despesas', 'meus ganhos', 'minhas receitas', 'gastos de', 'despesas de', 'ganhos de', 'receitas de'];
-const DELETE_KEYWORDS = ['apagar', 'apague', 'excluir', 'exclua', 'cancelar', 'cancele', 'desfazer', 'desfaça', 'deletar', 'delete'];
-const FIXED_KEYWORDS = ['fixo', 'fixa', 'recorrente', 'todo mês', 'todo mes', 'todo dia', 'todos os meses'];
+const DELETE_KEYWORDS = ['apagar', 'apague', 'excluir', 'exclua', 'cancelar', 'cancele', 'desfazer', 'desfaca', 'deletar', 'delete'];
+const FIXED_KEYWORDS = ['fixo', 'fixa', 'recorrente', 'todo mes', 'todo dia', 'todos os meses'];
 
 const CATEGORY_MAP: Record<string, string[]> = {
-  'Mercado': ['mercado', 'supermercado', 'compras', 'feira', 'açougue', 'padaria'],
-  'Transporte': ['transporte', 'uber', '99', 'taxi', 'ônibus', 'gasolina', 'combustível', 'estacionamento', 'pedágio', 'metrô', 'passagem'],
-  'Alimentação': ['alimentação', 'comida', 'ifood', 'restaurante', 'lanche', 'pizza', 'hamburguer', 'bar', 'café', 'padoca'],
+  'Mercado': ['mercado', 'supermercado', 'compras', 'feira', 'acougue', 'padaria'],
+  'Transporte': ['transporte', 'uber', '99', 'taxi', 'onibus', 'gasolina', 'combustivel', 'estacionamento', 'pedagio', 'metro', 'passagem'],
+  'Alimentação': ['alimentacao', 'comida', 'ifood', 'restaurante', 'lanche', 'pizza', 'hamburguer', 'bar', 'cafe', 'padoca'],
   'Lazer': ['lazer', 'cinema', 'festa', 'show', 'jogo', 'viagem', 'passeio', 'futebol', 'cerveja'],
-  'Saúde': ['saúde', 'farmácia', 'remédio', 'médico', 'consulta', 'hospital', 'dentista', 'terapia'],
-  'Moradia': ['moradia', 'aluguel', 'condomínio', 'luz', 'água', 'energia', 'internet', 'casa'],
+  'Saúde': ['saude', 'farmacia', 'remedio', 'medico', 'consulta', 'hospital', 'dentista', 'terapia'],
+  'Moradia': ['moradia', 'aluguel', 'condominio', 'luz', 'agua', 'energia', 'internet', 'casa'],
   'Serviços': ['celular', 'telefone', 'vivo', 'claro', 'tim', 'netflix', 'spotify', 'assinatura', 'academia'],
-  'Salário': ['salário', 'pagamento', 'adiantamento', 'vale', 'bônus', 'férias'],
+  'Salário': ['salario', 'pagamento', 'adiantamento', 'vale', 'bonus', 'ferias'],
 };
 
 const MONTHS_MAP: Record<string, number> = {
-  'janeiro': 1, 'jan': 1, 'mês 01': 1, 'mês 1': 1, 'mes 1': 1, 'mes 01': 1,
-  'fevereiro': 2, 'fev': 2, 'mês 02': 2, 'mês 2': 2, 'mes 2': 2, 'mes 02': 2,
-  'março': 3, 'mar': 3, 'mês 03': 3, 'mês 3': 3, 'mes 3': 3, 'mes 03': 3,
-  'abril': 4, 'abr': 4, 'mês 04': 4, 'mês 4': 4, 'mes 4': 4, 'mes 04': 4,
-  'maio': 5, 'mai': 5, 'mês 05': 5, 'mês 5': 5, 'mes 5': 5, 'mes 05': 5,
-  'junho': 6, 'jun': 6, 'mês 06': 6, 'mês 6': 6, 'mes 6': 6, 'mes 06': 6,
-  'julho': 7, 'jul': 7, 'mês 07': 7, 'mês 7': 7, 'mes 7': 7, 'mes 07': 7,
-  'agosto': 8, 'ago': 8, 'mês 08': 8, 'mês 8': 8, 'mes 8': 8, 'mes 08': 8,
-  'setembro': 9, 'set': 9, 'mês 09': 9, 'mês 9': 9, 'mes 9': 9, 'mes 09': 9,
-  'outubro': 10, 'out': 10, 'mês 10': 10, 'mes 10': 10,
-  'novembro': 11, 'nov': 11, 'mês 11': 11, 'mes 11': 11,
-  'dezembro': 12, 'dez': 12, 'mês 12': 12, 'mes 12': 12
+  'janeiro': 1, 'jan': 1, 'mes 01': 1, 'mes 1': 1,
+  'fevereiro': 2, 'fev': 2, 'mes 02': 2, 'mes 2': 2,
+  'marco': 3, 'mar': 3, 'mes 03': 3, 'mes 3': 3,
+  'abril': 4, 'abr': 4, 'mes 04': 4, 'mes 4': 4,
+  'maio': 5, 'mai': 5, 'mes 05': 5, 'mes 5': 5,
+  'junho': 6, 'jun': 6, 'mes 06': 6, 'mes 6': 6,
+  'julho': 7, 'jul': 7, 'mes 07': 7, 'mes 7': 7,
+  'agosto': 8, 'ago': 8, 'mes 08': 8, 'mes 8': 8,
+  'setembro': 9, 'set': 9, 'mes 09': 9, 'mes 9': 9,
+  'outubro': 10, 'out': 10, 'mes 10': 10,
+  'novembro': 11, 'nov': 11, 'mes 11': 11,
+  'dezembro': 12, 'dez': 12, 'mes 12': 12
 };
 
 function getDaysInMonth(year: number, month: number) {
@@ -60,8 +60,17 @@ function formatDate(date: Date) {
   return date.toISOString().split('T')[0];
 }
 
+function normalize(str: string): string {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+const ORDINAL_MAP: Record<string, number> = {
+  'primeiro': 1, 'segundo': 2, 'terceiro': 3, 'quarto': 4, 'quinto': 5,
+  'sexto': 6, 'setimo': 7, 'oitavo': 8, 'nono': 9, 'decimo': 10
+};
+
 export function parseMessage(message: string, context?: Partial<ParsedIntent>): ParsedIntent | null {
-  const normalized = message.trim().toLowerCase().replace(/\s+/g, ' ');
+  const normalized = normalize(message).trim().replace(/\s+/g, ' ');
   const now = new Date();
 
   // Verifica se a intenção é gerenciar/editar contas fixas
@@ -89,14 +98,22 @@ export function parseMessage(message: string, context?: Partial<ParsedIntent>): 
   }
 
   // Tenta encontrar um valor monetário para saber se é intenção de registro
-  // Padrões: 50, 50.00, 50,00, R$50, R$ 50,00. Evita anos sozinhos como 2026.
-  const amountMatch = normalized.match(/(?:r\$|reais)?\s*(?<!\b202)\b(\d+(?:[.,]\d{1,2})?)\b(?!\s*anos?)/);
+  // Padrões: 50, 50.00, 50,00, R$50, R$ 50,00. Evita anos sozinhos como 2026 e dias.
+  const amountMatch = normalized.match(/(?:r\$|reais)\s*(\d+(?:[.,]\d{1,2})?)|(\d+(?:[.,]\d{1,2})?)\s*(?:reais|r\$)|(?<!\b202)\b(\d+(?:[.,]\d{1,2})?)\b(?!\s*(?:anos?|dia|º))/);
   let hasAmount = context?.amount ? true : false;
   let amount = context?.amount || 0;
+  
   if (amountMatch) {
-    amount = parseFloat(amountMatch[1].replace(',', '.'));
-    if (!isNaN(amount) && amount > 0) {
-      hasAmount = true;
+    const valStr = amountMatch[1] || amountMatch[2] || amountMatch[3];
+    const newAmount = parseFloat(valStr.replace(',', '.'));
+    const isExplicit = normalized.includes('r$') || normalized.includes('reais');
+    
+    // Só sobrepõe se o contexto não tiver valor ou se o novo valor vier com R$ explicitamente
+    if (isExplicit || !hasAmount) {
+      if (!isNaN(newAmount) && newAmount > 0) {
+        amount = newAmount;
+        hasAmount = true;
+      }
     }
   }
 
@@ -227,9 +244,10 @@ export function parseMessage(message: string, context?: Partial<ParsedIntent>): 
     transaction_date.setDate(transaction_date.getDate() - 1);
   } else {
     // Detecta dia util
-    const businessDayMatch = normalized.match(/(?:(\d{1,2})[oº]?\s*dia\s*util|dia\s*util\s*(\d{1,2}))/);
+    const businessDayMatch = normalized.match(/(?:(primeiro|segundo|terceiro|quarto|quinto|sexto|setimo|oitavo|nono|decimo|\d{1,2})[oº]?\s*dia\s*util|dia\s*util\s*(\d{1,2}))/);
     if (businessDayMatch) {
-      day_of_month = parseInt(businessDayMatch[1] || businessDayMatch[2]);
+      const dayVal = businessDayMatch[1] || businessDayMatch[2];
+      day_of_month = ORDINAL_MAP[dayVal] || parseInt(dayVal);
       is_business_day = true;
     } else {
       const dayMatch = normalized.match(/(?:dia|em)\s+(\d{1,2})\b/);

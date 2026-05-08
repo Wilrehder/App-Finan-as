@@ -89,6 +89,26 @@ export async function parseUserIntent(message: string, context?: ParsedIntent) {
       payload: parsed
     }
   }
+  
+  // Se for reminder:
+  if (parsed.intent === 'reminder') {
+    let freqStr = 'uma vez';
+    if (parsed.frequency === 'daily') freqStr = 'todo dia';
+    if (parsed.frequency === 'weekly') freqStr = 'toda semana';
+    if (parsed.frequency === 'monthly') freqStr = `todo dia ${parsed.day_of_month}`;
+
+    let dateStr = '';
+    if (parsed.frequency === 'once' && parsed.specific_date) {
+      const [y, m, d] = parsed.specific_date.split('-');
+      dateStr = ` para o dia ${d}/${m}/${y}`;
+    }
+
+    return {
+      success: true,
+      message: `Certo! Vou criar um lembrete: "${parsed.description}" às ${parsed.remind_at} (${freqStr}${dateStr}). Confirma?`,
+      payload: parsed
+    }
+  }
 
   // Registro normal:
   const typeStr = parsed.type === 'income' ? 'RECEITA' : 'DESPESA'
@@ -261,4 +281,61 @@ export async function deleteLastTransaction() {
     success: true, 
     message: `🗑️ Pronto! A última transação (${typeStr} de R$ ${Number(lastTx.amount).toFixed(2)}) foi apagada com sucesso.` 
   }
+}
+
+export async function confirmReminder(parsed: ParsedIntent) {
+  const supabase = await createClient()
+  
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) throw new Error("Unauthorized")
+
+  const { error: dbError } = await supabase
+    .from('reminders')
+    .insert({
+      user_id: user.id,
+      title: parsed.description,
+      remind_at: parsed.remind_at,
+      frequency: parsed.frequency,
+      day_of_month: parsed.day_of_month,
+      day_of_week: parsed.day_of_week,
+      specific_date: parsed.specific_date,
+    })
+
+  if (dbError) {
+    return {
+      success: false,
+      message: "Erro ao salvar lembrete no banco de dados. " + dbError.message
+    }
+  }
+
+  revalidatePath("/calendario")
+  revalidatePath("/chat")
+  revalidatePath("/notificacoes")
+
+  return {
+    success: true,
+    message: `🔔 Lembrete "${parsed.description}" agendado com sucesso!`
+  }
+}
+
+export async function deleteReminder(id: string) {
+  const supabase = await createClient()
+  
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) throw new Error("Unauthorized")
+
+  const { error } = await supabase
+    .from('reminders')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) {
+    return { success: false, message: "Erro ao excluir lembrete." }
+  }
+
+  revalidatePath("/calendario")
+  revalidatePath("/notificacoes")
+
+  return { success: true }
 }

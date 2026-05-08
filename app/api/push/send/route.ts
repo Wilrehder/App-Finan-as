@@ -82,7 +82,11 @@ async function sendAndSave(
   try {
     await webpush.sendNotification(pushSub, payload);
     return true;
-  } catch {
+  } catch (error: any) {
+    console.error('Push error:', error);
+    if (error.statusCode === 410 || error.statusCode === 404) {
+      return 'remove';
+    }
     return false;
   }
 }
@@ -186,8 +190,9 @@ export async function GET(req: NextRequest) {
       for (const rec of todayExpenses) {
         const alreadySent = await wasAlreadySentToday(supabase, userId, 'FIXED_EXPENSE_TODAY', br.isoDate);
         if (!alreadySent) {
-          const ok = await sendAndSave(supabase, userId, pushSub, tplFixedExpenseToday(rec.description, Number(rec.amount)));
-          if (ok) { totalSent++; sentImportantToday = true; }
+          const res = await sendAndSave(supabase, userId, pushSub, tplFixedExpenseToday(rec.description, Number(rec.amount)));
+          if (res === true) { totalSent++; sentImportantToday = true; }
+          else if (res === 'remove') failedEndpoints.push(sub.endpoint);
         }
       }
     }
@@ -202,8 +207,9 @@ export async function GET(req: NextRequest) {
       for (const rec of todayIncomes) {
         const alreadySent = await wasAlreadySentToday(supabase, userId, 'FIXED_INCOME_TODAY', br.isoDate);
         if (!alreadySent) {
-          const ok = await sendAndSave(supabase, userId, pushSub, tplFixedIncomeToday(rec.description, Number(rec.amount)));
-          if (ok) { totalSent++; sentImportantToday = true; }
+          const res = await sendAndSave(supabase, userId, pushSub, tplFixedIncomeToday(rec.description, Number(rec.amount)));
+          if (res === true) { totalSent++; sentImportantToday = true; }
+          else if (res === 'remove') failedEndpoints.push(sub.endpoint);
         }
       }
     }
@@ -218,8 +224,9 @@ export async function GET(req: NextRequest) {
       for (const rec of tomorrowExpenses) {
         const alreadySent = await wasAlreadySentToday(supabase, userId, 'FIXED_EXPENSE_TOMORROW', br.isoDate);
         if (!alreadySent) {
-          const ok = await sendAndSave(supabase, userId, pushSub, tplFixedExpenseTomorrow(rec.description, Number(rec.amount)));
-          if (ok) { totalSent++; sentImportantToday = true; }
+          const res = await sendAndSave(supabase, userId, pushSub, tplFixedExpenseTomorrow(rec.description, Number(rec.amount)));
+          if (res === true) { totalSent++; sentImportantToday = true; }
+          else if (res === 'remove') failedEndpoints.push(sub.endpoint);
         }
       }
     }
@@ -257,17 +264,18 @@ export async function GET(req: NextRequest) {
 
           const prevTotal = (prevWeekTx ?? []).reduce((s: number, t: any) => s + Number(t.amount), 0);
 
-          const ok = await sendAndSave(supabase, userId, pushSub, tplWeeklySummary({
+          const res = await sendAndSave(supabase, userId, pushSub, tplWeeklySummary({
             totalExpense: total,
             topCategory,
             vsLastWeek: total - prevTotal,
           }));
-          if (ok) { totalSent++; sentImportantToday = true; }
+          if (res === true) { totalSent++; sentImportantToday = true; }
+          else if (res === 'remove') failedEndpoints.push(sub.endpoint);
         }
       }
     }
 
-    // ── 5. Lembrete diário inteligente (19h–21h, só se não houve nada importante) ──
+    // ── 5. Lembretes diário inteligente (19h–21h, só se não houve nada importante) ──
     if (!sentImportantToday && prefs.daily_reminder !== false && br.hour >= 19 && br.hour < 21) {
       const alreadySent = await wasAlreadySentToday(supabase, userId, 'DAILY_REMINDER', br.isoDate);
       if (!alreadySent) {
@@ -280,8 +288,50 @@ export async function GET(req: NextRequest) {
           .lte('transaction_date', br.isoDate);
 
         if ((count ?? 0) === 0) {
-          const ok = await sendAndSave(supabase, userId, pushSub, tplDailyReminder());
-          if (ok) totalSent++;
+          const res = await sendAndSave(supabase, userId, pushSub, tplDailyReminder());
+          if (res === true) totalSent++;
+          else if (res === 'remove') failedEndpoints.push(sub.endpoint);
+        }
+      }
+    }
+
+    // ── 6. Lembretes Customizados ─────────────────────────────────────────────
+    const { data: userReminders } = await supabase
+      .from('reminders')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true);
+
+    for (const rem of userReminders ?? []) {
+      const [remHour, remMin] = rem.remind_at.split(':').map(Number);
+      
+      // Verifica se é a hora certa (tolerância de 1 hora se o cron rodar de hora em hora)
+      if (br.hour !== remHour) continue;
+
+      let shouldSend = false;
+      const alreadySentToday = rem.last_sent_at === br.isoDate;
+
+      if (!alreadySentToday) {
+        if (rem.frequency === 'daily') shouldSend = true;
+        else if (rem.frequency === 'once' && rem.specific_date === br.isoDate) shouldSend = true;
+        else if (rem.frequency === 'monthly' && rem.day_of_month === br.day) shouldSend = true;
+        else if (rem.frequency === 'weekly' && rem.day_of_week === br.weekday) shouldSend = true;
+      }
+
+      if (shouldSend) {
+        const res = await sendAndSave(supabase, userId, pushSub, {
+          title: 'Lembrete 🔔',
+          body: rem.title,
+          type: 'CUSTOM_REMINDER',
+          url: '/notificacoes',
+          icon: '/icon-192x192.png'
+        });
+
+        if (res === true) {
+          totalSent++;
+          await supabase.from('reminders').update({ last_sent_at: br.isoDate }).eq('id', rem.id);
+        } else if (res === 'remove') {
+          failedEndpoints.push(sub.endpoint);
         }
       }
     }

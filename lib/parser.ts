@@ -1,5 +1,5 @@
 export type TransactionType = 'income' | 'expense';
-export type ChatIntentType = 'register' | 'register_fixed' | 'incomplete_fixed' | 'report' | 'manage_fixed' | 'delete' | 'unknown';
+export type ChatIntentType = 'register' | 'register_fixed' | 'incomplete_fixed' | 'report' | 'manage_fixed' | 'delete' | 'reminder' | 'unknown';
 
 export interface ParsedIntent {
   intent: ChatIntentType;
@@ -17,6 +17,12 @@ export interface ParsedIntent {
   report_start_date?: string; // YYYY-MM-DD
   report_end_date?: string; // YYYY-MM-DD
   report_period_name?: string;
+
+  // Para reminder:
+  remind_at?: string; // HH:MM
+  frequency?: 'once' | 'daily' | 'weekly' | 'monthly';
+  specific_date?: string;
+  day_of_week?: number;
 }
 
 // ─── Keywords ────────────────────────────────────────────────────────────────
@@ -156,6 +162,59 @@ export function parseMessage(message: string, context?: Partial<ParsedIntent>): 
     normalized.match(/minhas\s+(contas\s+fixas|despesas\s+fixas|receitas\s+fixas)/)
   ) {
     return { intent: 'manage_fixed' };
+  }
+
+  // ── Lembretes / Notificações customizadas
+  if (
+    normalized.match(/(lembre|lembrar|notificacao|notificar|me avise|avisa|alerta)/) ||
+    normalized.startsWith('lembrete')
+  ) {
+    let frequency: 'once' | 'daily' | 'weekly' | 'monthly' = 'once';
+    if (normalized.includes('todo dia') || normalized.includes('diariamente')) frequency = 'daily';
+    else if (normalized.includes('toda semana') || normalized.includes('semanal')) frequency = 'weekly';
+    else if (normalized.includes('todo mes') || normalized.includes('mensal')) frequency = 'monthly';
+
+    // Extrai hora: "as 10h", "as 10:30", "10:00"
+    const timeMatch = normalized.match(/(?:as\s+)?(\d{1,2})(?::(\d{2}))?\s*h?/);
+    const remind_at = timeMatch ? `${timeMatch[1].padStart(2, '0')}:${(timeMatch[2] || '00')}` : '09:00';
+
+    // Extrai dia do mês se mensal
+    let dom = undefined;
+    if (frequency === 'monthly') {
+      const dMatch = normalized.match(/dia\s+(\d{1,2})/);
+      if (dMatch) dom = parseInt(dMatch[1]);
+    }
+
+    // Extrai data específica se 'once'
+    let specDate = undefined;
+    if (frequency === 'once') {
+      if (normalized.includes('amanha')) {
+        const d = new Date(now); d.setDate(d.getDate() + 1);
+        specDate = formatDate(d);
+      } else if (normalized.includes('hoje')) {
+        specDate = formatDate(now);
+      }
+    }
+
+    // Extrai descrição
+    let description = message
+      .replace(/(lembre-me|lembre|lembrar|notificacao|notificar|me avise|avisa|alerta|lembrete)/ig, '')
+      .replace(/(?:as\s+)?\d{1,2}(?::\d{2})?\s*h?/ig, '')
+      .replace(/(todo dia|diariamente|toda semana|semanal|todo mes|mensal|amanha|hoje)/ig, '')
+      .replace(/\b(de|do|da|para|pra|em|que)\b/ig, '')
+      .trim();
+    
+    if (!description) description = "Lembrete";
+    else description = description.charAt(0).toUpperCase() + description.slice(1);
+
+    return {
+      intent: 'reminder',
+      description,
+      remind_at,
+      frequency,
+      specific_date: specDate,
+      day_of_month: dom
+    };
   }
 
   // ── Detecta fixo (herda contexto também)

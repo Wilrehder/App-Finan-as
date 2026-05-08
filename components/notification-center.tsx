@@ -13,6 +13,7 @@ const TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string; label:
   FIXED_EXPENSE_TOMORROW:{ icon: <CalendarClock size={16} />, color: 'text-red-400 bg-red-400/10',       label: 'Despesa amanhã' },
   FIXED_EXPENSE_TODAY:  { icon: <TrendingDown size={16} />,   color: 'text-red-500 bg-red-500/10',       label: 'Despesa hoje' },
   FIXED_INCOME_TODAY:   { icon: <TrendingUp size={16} />,     color: 'text-green-400 bg-green-400/10',   label: 'Receita hoje' },
+  CUSTOM_REMINDER:      { icon: <Bell size={16} />,           color: 'text-blue-400 bg-blue-400/10',     label: 'Lembrete' },
 };
 
 function formatRelative(dateStr: string): string {

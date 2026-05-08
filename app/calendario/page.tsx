@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { ChevronLeft, LayoutDashboard, Settings } from "lucide-react"
+import { ChevronLeft, LayoutDashboard, Settings, Trash2 } from "lucide-react"
 import { getCalendarEvents, CalendarEvent } from "./actions"
 import Link from "next/link"
 import { EditRecurringModal } from "@/components/edit-recurring-modal"
+import { deleteReminder } from "../chat/actions"
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -70,11 +71,12 @@ export default function CalendarioPage() {
     setView('month')
   }
 
-  // Map dateStr -> { hasIncome, hasExpense }
-  const eventDateMap = events.reduce<Record<string, { hasIncome: boolean; hasExpense: boolean }>>((acc, e) => {
-    if (!acc[e.date]) acc[e.date] = { hasIncome: false, hasExpense: false }
+  // Map dateStr -> { hasIncome, hasExpense, hasReminder }
+  const eventDateMap = events.reduce<Record<string, { hasIncome: boolean; hasExpense: boolean; hasReminder: boolean }>>((acc, e) => {
+    if (!acc[e.date]) acc[e.date] = { hasIncome: false, hasExpense: false, hasReminder: false }
     if (e.type === 'income') acc[e.date].hasIncome = true
     if (e.type === 'expense') acc[e.date].hasExpense = true
+    if (e.type === 'reminder') acc[e.date].hasReminder = true
     return acc
   }, {})
 
@@ -118,11 +120,12 @@ export default function CalendarioPage() {
                         <div className={`text-center flex justify-center items-center rounded-full ${isToday ? 'bg-red-500 text-white w-4 h-4 mx-auto' : 'text-foreground'}`}>
                           {d}
                         </div>
-                        {/* dots: expense = red, income = green */}
+                        {/* dots: expense = red, income = green, reminder = blue */}
                         {info && !isToday && (
                           <div className="flex gap-[1px] mt-[1px]">
                             {info.hasExpense && <div className="w-[3px] h-[3px] rounded-full bg-red-500/70" />}
                             {info.hasIncome && <div className="w-[3px] h-[3px] rounded-full bg-green-500/70" />}
+                            {info.hasReminder && <div className="w-[3px] h-[3px] rounded-full bg-blue-500/70" />}
                           </div>
                         )}
                       </div>
@@ -196,6 +199,7 @@ export default function CalendarioPage() {
                       <div className="flex gap-0.5 mt-0.5">
                         {hasExpense && <div className="w-1.5 h-1.5 rounded-full bg-red-500/80" />}
                         {hasIncome && <div className="w-1.5 h-1.5 rounded-full bg-green-500/80" />}
+                        {info?.hasReminder && <div className="w-1.5 h-1.5 rounded-full bg-blue-500/80" />}
                       </div>
                     </div>
                   )
@@ -229,25 +233,49 @@ export default function CalendarioPage() {
             {selectedEvents.map(ev => (
               <div key={ev.id} className="flex justify-between items-center bg-background/50 p-4 rounded-2xl border border-white/5">
                 <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${ev.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <div className={`w-3 h-3 rounded-full ${
+                    ev.type === 'income' ? 'bg-green-500' : 
+                    ev.type === 'reminder' ? 'bg-blue-500' : 'bg-red-500'
+                  }`} />
                   <div className="flex flex-col">
                     <span className="font-medium text-sm leading-tight">{ev.description}</span>
                     <span className="text-[10px] text-muted-foreground mt-0.5">
-                      Todo {ev.is_business_day ? `${ev.day_of_month}º dia útil` : `dia ${ev.day_of_month}`}
+                      {ev.type === 'reminder' 
+                        ? `Lembrete às ${ev.time}`
+                        : `Todo ${ev.is_business_day ? `${ev.day_of_month}º dia útil` : `dia ${ev.day_of_month}`}`}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`font-semibold text-sm ${ev.type === 'income' ? 'text-green-500' : 'text-foreground'}`}>
-                    {ev.type === 'income' ? '+' : '-'} R$ {ev.amount.toFixed(2)}
-                  </span>
-                  <EditRecurringModal item={{
-                    id: ev.recurring_id,
-                    description: ev.description,
-                    amount: ev.amount,
-                    day_of_month: ev.day_of_month,
-                    is_business_day: ev.is_business_day
-                  }} />
+                  {ev.type !== 'reminder' && (
+                    <span className={`font-semibold text-sm ${ev.type === 'income' ? 'text-green-500' : 'text-foreground'}`}>
+                      {ev.type === 'income' ? '+' : '-'} R$ {ev.amount?.toFixed(2)}
+                    </span>
+                  )}
+                  {ev.type === 'reminder' ? (
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={async () => {
+                          if (confirm('Excluir este lembrete?')) {
+                            await deleteReminder(ev.reminder_id!);
+                            const res = await getCalendarEvents(currentYear);
+                            if (res.success && res.events) setEvents(res.events);
+                          }
+                        }}
+                        className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <EditRecurringModal item={{
+                      id: ev.recurring_id!,
+                      description: ev.description,
+                      amount: ev.amount!,
+                      day_of_month: ev.day_of_month!,
+                      is_business_day: ev.is_business_day!
+                    }} />
+                  )}
                 </div>
               </div>
             ))}

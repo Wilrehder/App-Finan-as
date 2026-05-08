@@ -8,6 +8,7 @@ import { ExportPdfButton } from "@/components/export-pdf-button"
 import { NotificationBell } from "@/components/notification-bell"
 import { NotificationOnboardingModal } from "@/components/notification-onboarding-modal"
 import { TransactionList } from "@/components/transaction-list"
+import { FinInsights } from "@/components/fin-insights"
 import Link from "next/link"
 
 export const revalidate = 30 // revalida a cada 30 segundos
@@ -89,6 +90,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
           </div>
         </CardContent>
       </Card>
+
+      <FinInsights />
 
       <div className="grid grid-cols-2 gap-4">
         <Card className="bg-secondary/30 border-none glass">

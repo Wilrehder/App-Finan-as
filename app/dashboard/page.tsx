@@ -69,7 +69,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
           <CardDescription className="text-primary-foreground/70 font-medium flex items-center gap-1.5">
             Total Gasto
           </CardDescription>
-          <CardTitle className="text-4xl">R$ {data.expense.toFixed(2)}</CardTitle>
+          <CardTitle className="text-4xl">R$ {data.expense.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex justify-between mt-4 pt-4 border-t border-primary-foreground/10">
@@ -77,14 +77,14 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
               <span className="text-xs text-primary-foreground/70 flex items-center gap-1">
                 <ArrowUpIcon size={12} className="text-green-400" /> Receitas
               </span>
-              <span className="font-semibold mt-1">R$ {data.income.toFixed(2)}</span>
+              <span className="font-semibold mt-1">R$ {data.income.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className="flex flex-col items-end">
               <span className="text-xs text-primary-foreground/70">
                 Resultado do Mês
               </span>
               <span className={`font-semibold mt-1 ${data.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                R$ {data.balance.toFixed(2)}
+                R$ {data.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           </div>

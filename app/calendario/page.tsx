@@ -249,7 +249,7 @@ export default function CalendarioPage() {
                 <div className="flex items-center gap-2">
                   {ev.type !== 'reminder' && (
                     <span className={`font-semibold text-sm ${ev.type === 'income' ? 'text-green-500' : 'text-foreground'}`}>
-                      {ev.type === 'income' ? '+' : '-'} R$ {ev.amount?.toFixed(2)}
+                      {ev.type === 'income' ? '+' : '-'} R$ {ev.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   )}
                   {ev.type === 'reminder' ? (

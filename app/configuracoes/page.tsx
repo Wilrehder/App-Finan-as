@@ -88,7 +88,7 @@ export default async function ConfiguracoesPage() {
                     <div>
                       <p className="font-medium text-sm">{rec.description}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Todo {rec.is_business_day ? `${rec.day_of_month}º dia útil` : `dia ${rec.day_of_month}`} • R$ {Number(rec.amount).toFixed(2)}
+                        Todo {rec.is_business_day ? `${rec.day_of_month}º dia útil` : `dia ${rec.day_of_month}`} • R$ {Number(rec.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                   </div>

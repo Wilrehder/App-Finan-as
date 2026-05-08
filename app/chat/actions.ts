@@ -123,7 +123,7 @@ export async function confirmTransaction(parsed: ParsedIntent) {
   
   return {
     success: true,
-    message: `✅ ${typeStr} de R$ ${parsed.amount?.toFixed(2)} salva com sucesso para o dia ${d}/${m}/${y}!`
+    message: `✅ ${typeStr} de R$ ${parsed.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} salva com sucesso para o dia ${d}/${m}/${y}!`
   }
 }
 
@@ -164,7 +164,7 @@ export async function confirmFixedTransaction(parsed: ParsedIntent) {
   
   return {
     success: true,
-    message: `🔄 ${typeStr} de R$ ${parsed.amount?.toFixed(2)} salva com sucesso para todo ${dayStr}! O lançamento deste mês já foi gerado.`
+    message: `🔄 ${typeStr} de R$ ${parsed.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} salva com sucesso para todo ${dayStr}! O lançamento deste mês já foi gerado.`
   }
 }
 
@@ -203,7 +203,7 @@ export async function deleteLastTransaction() {
   const typeStr = lastTx.type === 'income' ? 'Receita' : 'Despesa'
   return { 
     success: true, 
-    message: `🗑️ Pronto! A última transação (${typeStr} de R$ ${Number(lastTx.amount).toFixed(2)}) foi apagada com sucesso.` 
+    message: `🗑️ Pronto! A última transação (${typeStr} de R$ ${Number(lastTx.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) foi apagada com sucesso.` 
   }
 }
 

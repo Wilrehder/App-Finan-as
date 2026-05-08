@@ -4,6 +4,7 @@ import { ArrowLeft, Plus } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { GoalCelebration } from "@/components/goal-celebration"
+import { GoalCreateButton, GoalCreateEmptyButton } from "@/components/goal-create-button"
 
 export default async function ObjetivosPage() {
   const goals = await getGoals()
@@ -20,9 +21,7 @@ export default async function ObjetivosPage() {
             <p className="text-sm text-muted-foreground">Acompanhe suas metas</p>
           </div>
         </div>
-        <Link href="/chat" className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg">
-          <Plus size={20} />
-        </Link>
+        <GoalCreateButton />
       </div>
 
       {goals.length === 0 ? (
@@ -31,9 +30,7 @@ export default async function ObjetivosPage() {
             <div className="text-5xl">🎯</div>
             <h3 className="text-lg font-semibold">Nenhum objetivo criado</h3>
             <p className="text-sm text-muted-foreground">Que tal começar a planejar aquela viagem ou criar sua reserva de emergência?</p>
-            <Link href="/chat" className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-full font-medium hover:bg-primary/90 transition-colors">
-              Criar Objetivo
-            </Link>
+            <GoalCreateEmptyButton />
           </CardContent>
         </Card>
       ) : (

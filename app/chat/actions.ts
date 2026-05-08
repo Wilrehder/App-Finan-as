@@ -56,6 +56,13 @@ export async function parseUserIntent(message: string, context?: ParsedIntent) {
   }
 
   if (parsed.intent === 'goal_deposit') {
+    if (!parsed.amount || !parsed.goal_name) {
+      return {
+        success: true,
+        message: parsed.reply_message || "Qual o valor do aporte e para qual objetivo?",
+        payload: parsed
+      }
+    }
     return {
       success: true,
       message: parsed.reply_message || "Posso confirmar esse aporte para a sua meta?",

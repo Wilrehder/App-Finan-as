@@ -491,7 +491,9 @@ export default function ChatPage() {
         } else if (response.success && (response as any).payload && !(response as any).isReport && !(response as any).isDeleteRequest) {
           const intent = (response as any).payload?.intent;
           const isFixed = intent === 'register_fixed';
-          const isIncomplete = intent === 'incomplete_fixed';
+          const isIncomplete = intent === 'incomplete_fixed' || 
+                              (intent === 'create_goal' && !(response as any).isGoalPreview) || 
+                              (intent === 'goal_deposit' && !(response as any).isGoalDeposit);
 
           // Sempre salva o payload para manter contexto entre turnos
           newBotMsg.payload = (response as any).payload;

@@ -22,12 +22,19 @@ export const metadata: Metadata = {
   themeColor: "#09090b",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Finchat",
+    startupImage: "/apple-touch-icon.png",
   },
   icons: {
-    icon: "/logo.png",
-    apple: "/apple-icon.png",
+    icon: [
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/apple-touch-icon.png",
   },
 };
 
@@ -38,6 +45,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className="dark">
+      <head>
+        {/* iOS lê diretamente essa tag — ignora o manifest para o ícone da área de trabalho */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png?v=2" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon.png?v=2" />
+        <link rel="shortcut icon" href="/apple-touch-icon.png?v=2" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-[100dvh] overflow-hidden`}
       >

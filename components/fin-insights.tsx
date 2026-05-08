@@ -18,7 +18,7 @@ export function FinInsights() {
     async function loadInsights() {
       try {
         const todayStr = new Date().toISOString().split('T')[0]
-        const cacheKey = `fin_insights_${todayStr}`
+        const cacheKey = `fin_insights_v2_${todayStr}`
         
         // Tenta pegar do cache local do navegador
         const cached = localStorage.getItem(cacheKey)

@@ -6,8 +6,18 @@ import { parseMessage, ParsedIntent } from "@/lib/parser"
 import { syncRecurringTransactions } from "@/lib/sync"
 
 export async function parseUserIntent(message: string, context?: ParsedIntent) {
-  const parsed = await parseMessage(message, context)
+  let parsed = await parseMessage(message, context)
   
+  // MACRO FIX: Garantir que o contexto não seja perdido pelo GPT se a intenção for a mesma
+  if (parsed && context && context.intent === parsed.intent) {
+    const merged = { ...context };
+    for (const key in parsed) {
+      if (parsed[key as keyof ParsedIntent] !== undefined && parsed[key as keyof ParsedIntent] !== null) {
+        (merged as any)[key] = parsed[key as keyof ParsedIntent];
+      }
+    }
+    parsed = merged as ParsedIntent;
+  }
   // Não entendeu nada — mostra menu de capacidades com botões na UI
   if (!parsed || parsed.intent === 'unknown') {
     return {

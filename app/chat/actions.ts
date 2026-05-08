@@ -9,31 +9,11 @@ export async function parseUserIntent(message: string, context?: ParsedIntent) {
   const parsed = await parseMessage(message, context)
   
   // Não entendeu nada — mostra menu de capacidades com botões na UI
-  if (!parsed) {
-    // Se havia contexto (bot perguntou algo), orienta melhor
-    if (context?.intent === 'incomplete_fixed') {
-      if (!context.amount) {
-        const typeStr = context.type === 'income' ? 'receita fixa' : 'despesa fixa';
-        return {
-          success: false,
-          message: `Não entendi o valor. Para cadastrar uma ${typeStr}, me diga assim:\n\n💬 *"R$ 500 reais"* ou *"500"* ou *"2 mil reais"*`,
-          payload: context
-        }
-      }
-      if (!context.day_of_month) {
-        return {
-          success: false,
-          message: `Não entendi o dia. Me diga assim:\n\n💬 *"dia 5"* → todo dia 5\n💬 *"dia 10"* → todo dia 10\n💬 *"5º dia útil"* → 5º dia útil do mês`,
-          payload: context
-        }
-      }
-    }
-
-    // Sem contexto — mostra lista de tudo que o agente faz
+  if (!parsed || parsed.intent === 'unknown') {
     return {
       success: false,
       isShowCapabilities: true,
-      message: `Não entendi 😅 Veja o que posso fazer por você:`
+      message: parsed?.reply_message || `Não entendi 😅 Veja o que posso fazer por você:`
     }
   }
 
@@ -59,66 +39,10 @@ export async function parseUserIntent(message: string, context?: ParsedIntent) {
     }
   }
 
-  // Se for incomplete_fixed:
-  if (parsed.intent === 'incomplete_fixed') {
-    if (!parsed.amount) {
-      const typeStr = parsed.type === 'income' ? 'receita fixa' : 'despesa fixa';
-      return {
-        success: true,
-        message: `Certo! Vou cadastrar uma ${typeStr}. Qual o valor? (ex: *"R$ 1.500"* ou *"2 mil reais"*)`,
-        payload: parsed
-      }
-    } else if (!parsed.day_of_month) {
-      const valorFormatado = parsed.amount?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-      return {
-        success: true,
-        message: `Certo, ${parsed.description} de ${valorFormatado}. Todo mês, qual o dia de cobrança?\n\n💬 *"dia 5"* ou *"5º dia útil"*`,
-        payload: parsed
-      }
-    }
-  }
-
-  // Se for register_fixed:
-  if (parsed.intent === 'register_fixed') {
-    const typeStr = parsed.type === 'income' ? 'RECEITA FIXA' : 'DESPESA FIXA'
-    const dayStr = parsed.is_business_day ? `${parsed.day_of_month}º dia útil` : `dia ${parsed.day_of_month}`
-    const valorFormatado = parsed.amount?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-    return {
-      success: true,
-      message: `Entendi! ${typeStr} de ${valorFormatado} em ${parsed.category} para todo ${dayStr}. Confirma?`,
-      payload: parsed
-    }
-  }
-  
-  // Se for reminder:
-  if (parsed.intent === 'reminder') {
-    let freqStr = 'uma vez';
-    if (parsed.frequency === 'daily') freqStr = 'todo dia';
-    if (parsed.frequency === 'weekly') freqStr = 'toda semana';
-    if (parsed.frequency === 'monthly') freqStr = `todo dia ${parsed.day_of_month}`;
-
-    let dateStr = '';
-    if (parsed.frequency === 'once' && parsed.specific_date) {
-      const [y, m, d] = parsed.specific_date.split('-');
-      dateStr = ` para o dia ${d}/${m}/${y}`;
-    }
-
-    return {
-      success: true,
-      message: `Certo! Vou criar um lembrete: "${parsed.description}" às ${parsed.remind_at} (${freqStr}${dateStr}). Confirma?`,
-      payload: parsed
-    }
-  }
-
-  // Registro normal:
-  const typeStr = parsed.type === 'income' ? 'RECEITA' : 'DESPESA'
-  const [y, m, d] = parsed.transaction_date!.split('-')
-  const formattedDate = `${d}/${m}/${y}`
-  const valorFormatado = parsed.amount?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-  
+  // Se for register_fixed, reminder, ou register normal:
   return {
     success: true,
-    message: `Entendi! ${typeStr} de ${valorFormatado} em ${parsed.category} no dia ${formattedDate}. Confirma?`,
+    message: parsed.reply_message || "Tudo certo! Posso confirmar?",
     payload: parsed
   }
 }

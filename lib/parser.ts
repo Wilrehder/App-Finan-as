@@ -5,6 +5,7 @@ export type ChatIntentType = 'register' | 'register_fixed' | 'incomplete_fixed' 
 
 export interface ParsedIntent {
   intent: ChatIntentType;
+  reply_message?: string;
   
   // Para register/fixed:
   type?: TransactionType;
@@ -62,7 +63,8 @@ O JSON deve seguir a interface TypeScript:
   "report_period_name": "string", // OPCIONAL (ex: "este mês", "janeiro")
   "remind_at": "HH:MM", // OPCIONAL
   "frequency": "once" | "daily" | "weekly" | "monthly", // OPCIONAL
-  "specific_date": "YYYY-MM-DD" // OPCIONAL
+  "specific_date": "YYYY-MM-DD", // OPCIONAL
+  "reply_message": "string" // OBRIGATÓRIO: Crie uma mensagem amigável, humanizada (com emojis curtos) confirmando o que você entendeu e pedindo confirmação.
 }
 
 Regras:
@@ -80,11 +82,15 @@ Regras:
 6. 'reminder': Para criar lembretes/alarmes ("me lembre de pagar luz às 10:30 amanhã").
    - Preencha 'remind_at' no formato 24h HH:MM, 'frequency' ('once', 'daily', etc), e a 'description'.
    - Se for 'once', preencha 'specific_date' (YYYY-MM-DD).
-7. Contexto: O usuário pode estar apenas respondendo a uma pergunta do robô.
+7. 'reply_message': Você DEVE formular uma resposta amigável e conversacional como se fosse o Finchat. 
+   - Se for 'register', diga algo como: "Pode deixar! 📝 Vou anotar aqui a sua despesa de R$ 50,00 com Alimentação pra hoje. Posso confirmar?"
+   - Se for 'incomplete_fixed', faça a pergunta que falta: "Qual é o valor dessa conta?" ou "Qual dia do mês ela vence?"
+   - Seja natural e prestativo. Use o estilo de conversa de um assistente de WhatsApp brasileiro.
+8. Contexto: O usuário pode estar apenas respondendo a uma pergunta do robô.
    Contexto Atual do Bot: ${JSON.stringify(context || {})}
    - Exemplo: Se o contexto dizia 'incomplete_fixed' (faltava o valor) e o usuário disse apenas "50 reais", você deve usar o contexto para devolver a mesma conta, só que agora com 'amount': 50 e 'intent': 'register_fixed'.
-8. Se não entender nada, ou for papo furado, retorne {"intent": "unknown"}.
-9. RETORNE SOMENTE O JSON PURO. NADA DE TEXTO ADICIONAL.`;
+9. Se não entender nada, ou for papo furado, retorne {"intent": "unknown", "reply_message": "Putz, não entendi 😅. Como posso te ajudar hoje?"}.
+10. RETORNE SOMENTE O JSON PURO. NADA DE TEXTO ADICIONAL.`;
 
   try {
     const response = await openai.chat.completions.create({

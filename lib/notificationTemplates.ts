@@ -4,7 +4,8 @@ export type NotificationType =
   | 'BUDGET_ALERT'
   | 'FIXED_EXPENSE_TOMORROW'
   | 'FIXED_EXPENSE_TODAY'
-  | 'FIXED_INCOME_TODAY';
+  | 'FIXED_INCOME_TODAY'
+  | 'CUSTOM_REMINDER';
 
 export interface NotificationTemplate {
   type: NotificationType;

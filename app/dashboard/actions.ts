@@ -128,3 +128,25 @@ export async function getAvailablePeriods() {
     availableMonths: Array.from(months).sort((a, b) => parseInt(a) - parseInt(b))
   }
 }
+
+export async function updateTransactionCategory(txId: string, category: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  const { error } = await supabase
+    .from('transactions')
+    .update({ category })
+    .eq('id', txId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    console.error(error)
+    return false
+  }
+
+  return true
+}

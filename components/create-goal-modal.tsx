@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Calendar, TrendingUp, X } from "lucide-react"
 import { confirmGoal } from "@/app/chat/actions"
 import { useRouter } from "next/navigation"
+import { createPortal } from "react-dom"
 
 interface CreateGoalModalProps {
   onClose: () => void;
@@ -24,6 +25,11 @@ export function CreateGoalModal({ onClose }: CreateGoalModalProps) {
   
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState<{ periods: number, amountPerPeriod: number } | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!targetAmount || !deadline || !frequency) {
@@ -81,7 +87,9 @@ export function CreateGoalModal({ onClose }: CreateGoalModalProps) {
     }
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex flex-col bg-background animate-in slide-in-from-bottom-full duration-300">
       <div className="flex justify-between items-center p-6 border-b border-border/10 shrink-0">
         <h3 className="text-2xl font-bold tracking-tight text-primary">Novo Objetivo</h3>
@@ -179,6 +187,7 @@ export function CreateGoalModal({ onClose }: CreateGoalModalProps) {
           {loading ? "Salvando..." : "Criar Objetivo"}
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

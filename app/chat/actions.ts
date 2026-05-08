@@ -6,7 +6,7 @@ import { parseMessage, ParsedIntent } from "@/lib/parser"
 import { syncRecurringTransactions } from "@/lib/sync"
 
 export async function parseUserIntent(message: string, context?: ParsedIntent) {
-  const parsed = parseMessage(message, context)
+  const parsed = await parseMessage(message, context)
   
   // Não entendeu nada — mostra menu de capacidades com botões na UI
   if (!parsed) {

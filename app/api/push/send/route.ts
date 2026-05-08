@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush, { PushSubscription } from 'web-push';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import {
   tplDailyReminder,
   tplWeeklySummary,
@@ -118,8 +118,6 @@ export async function GET(req: NextRequest) {
     process.env.VAPID_PRIVATE_KEY!
   );
 
-  // Vercel Cron envia: Authorization: Bearer <CRON_SECRET>
-  // Também aceita header customizado x-cron-secret e query param secret (testes manuais)
   const authHeader = req.headers.get('authorization');
   const bearerSecret = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
   const secret = bearerSecret
@@ -130,7 +128,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
-  const supabase = await createClient();
+  // CRÍTICO: Cron jobs não têm cookies de usuário, então precisam usar a Service Role Key para ignorar o RLS do Supabase.
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   const br = getBRDate();
   const tomorrow = new Date(br.date.getTime() + 24 * 60 * 60 * 1000);
   const tomorrowBR = {
@@ -252,7 +254,10 @@ export async function GET(req: NextRequest) {
     // E. Lembretes Customizados (Tabela 'reminders')
     for (const rem of userReminders) {
       const [remHour] = rem.remind_at.split(':').map(Number);
-      if (br.hour !== remHour) continue;
+      
+      // Se a hora do lembrete já passou ou é agora, E ainda não enviou hoje, então envia.
+      // Isso corrige o problema do Cron da Vercel rodar em horários espaçados.
+      if (remHour > br.hour) continue;
 
       let shouldSend = false;
       if (rem.last_sent_at !== br.isoDate) {

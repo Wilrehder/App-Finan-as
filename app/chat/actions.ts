@@ -308,6 +308,56 @@ export async function confirmReminder(parsed: ParsedIntent) {
     }
   }
 
+  // Integração com QStash para envio EXATO no minuto
+  if (process.env.QSTASH_TOKEN) {
+    try {
+      const { Client } = require("@upstash/qstash");
+      const qstash = new Client({ token: process.env.QSTASH_TOKEN });
+      // Precisa ter a URL base de producao ou ngrok para o QStash conseguir chamar de volta
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+      const dest = `${baseUrl}/api/push/qstash`;
+
+      const { data: inserted } = await supabase
+        .from('reminders')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (inserted) {
+        if (parsed.frequency === 'once' && parsed.specific_date) {
+          const [y, m, d] = parsed.specific_date.split('-');
+          const [hr, min, sec] = parsed.remind_at!.split(':');
+          const dateString = `${y}-${m}-${d}T${hr}:${min}:${sec}-03:00`;
+          const timestamp = Math.floor(new Date(dateString).getTime() / 1000);
+
+          await qstash.publishJSON({
+            url: dest,
+            body: { reminderId: inserted.id, userId: user.id },
+            notBefore: timestamp
+          });
+        } else {
+          const hr = parseInt(parsed.remind_at!.split(':')[0]);
+          const min = parseInt(parsed.remind_at!.split(':')[1]);
+          const utcHr = (hr + 3) % 24;
+
+          let cronStr = `${min} ${utcHr} * * *`;
+          if (parsed.frequency === 'monthly') cronStr = `${min} ${utcHr} ${parsed.day_of_month} * *`;
+          if (parsed.frequency === 'weekly') cronStr = `${min} ${utcHr} * * ${parsed.day_of_week}`;
+
+          await qstash.schedules.create({
+            destination: dest,
+            cron: cronStr,
+            body: { reminderId: inserted.id, userId: user.id }
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Erro ao agendar no QStash", e);
+    }
+  }
+
   revalidatePath("/calendario")
   revalidatePath("/chat")
   revalidatePath("/notificacoes")

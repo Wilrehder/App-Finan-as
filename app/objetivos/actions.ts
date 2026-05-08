@@ -57,3 +57,21 @@ export async function getGoals() {
     }
   })
 }
+
+export async function deleteGoal(goalId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) throw new Error("Unauthorized")
+
+  const { error } = await supabase
+    .from('goals')
+    .delete()
+    .eq('id', goalId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    return { success: false, message: "Erro ao excluir o objetivo." }
+  }
+
+  return { success: true }
+}

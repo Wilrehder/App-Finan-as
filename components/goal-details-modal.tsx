@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { CheckCircle2, Circle, X, Plus } from "lucide-react"
+import { CheckCircle2, Circle, X, Plus, Trash2 } from "lucide-react"
 import { createPortal } from "react-dom"
 import { confirmGoalDeposit } from "@/app/chat/actions"
+import { deleteGoal } from "@/app/objetivos/actions"
 import { useRouter } from "next/navigation"
 
 interface GoalDetailsModalProps {
@@ -53,6 +54,21 @@ export function GoalDetailsModal({ goal, onClose }: GoalDetailsModalProps) {
     handleDeposit(amount)
   }
 
+  const handleDelete = async () => {
+    if (confirm("Tem certeza que deseja excluir este objetivo? Esta ação não apagará suas transações de saldo, mas removerá a meta permanentemente.")) {
+      setLoading(true)
+      const res = await deleteGoal(goal.id)
+      setLoading(false)
+      
+      if (res.success) {
+        router.refresh()
+        onClose()
+      } else {
+        alert(res.message)
+      }
+    }
+  }
+
   if (!mounted) return null;
 
   const isCompleted = goal.percentage >= 100;
@@ -74,9 +90,14 @@ export function GoalDetailsModal({ goal, onClose }: GoalDetailsModalProps) {
           <span className="text-2xl">{goal.icon || '🎯'}</span>
           <span>{goal.name}</span>
         </h3>
-        <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-secondary text-muted-foreground hover:bg-secondary/80 transition-colors">
-          <X size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleDelete} disabled={loading} className="w-10 h-10 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors">
+            <Trash2 size={18} />
+          </button>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-secondary text-muted-foreground hover:bg-secondary/80 transition-colors">
+            <X size={20} />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar pb-32">

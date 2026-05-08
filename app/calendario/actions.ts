@@ -34,7 +34,7 @@ export type CalendarEvent = {
   id: string;
   recurring_id?: string;
   reminder_id?: string;
-  type: 'income' | 'expense' | 'reminder';
+  type: 'income' | 'expense' | 'reminder' | 'goal';
   amount?: number;
   description: string;
   date: string; // YYYY-MM-DD
@@ -49,9 +49,10 @@ export async function getCalendarEvents(year: number) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, events: [] }
 
-  const [ { data: recurring }, { data: reminders } ] = await Promise.all([
+  const [ { data: recurring }, { data: reminders }, { data: goals } ] = await Promise.all([
     supabase.from('recurring_transactions').select('*').eq('user_id', user.id),
-    supabase.from('reminders').select('*').eq('user_id', user.id).eq('is_active', true)
+    supabase.from('reminders').select('*').eq('user_id', user.id).eq('is_active', true),
+    supabase.from('goals').select('*, goal_deposits(amount)').eq('user_id', user.id)
   ]);
 
   const events: CalendarEvent[] = [];
@@ -140,6 +141,81 @@ export async function getCalendarEvents(year: number) {
                 description: rem.title,
                 date: `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
                 time: rem.remind_at
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Process Goals
+  if (goals) {
+    for (const goal of goals) {
+      const totalSaved = goal.goal_deposits.reduce((acc: number, dep: any) => acc + Number(dep.amount), 0);
+      const targetAmount = Number(goal.target_amount);
+      if (totalSaved >= targetAmount) continue; // Goal is completed
+
+      const createdDate = new Date(goal.created_at);
+      const deadline = new Date(goal.deadline);
+
+      // Estimate amount per period (simplified)
+      const diffTime = Math.max(deadline.getTime() - createdDate.getTime(), 0);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+      let periods = 1;
+      if (goal.frequency === 'daily') periods = diffDays;
+      else if (goal.frequency === 'weekly') periods = Math.ceil(diffDays / 7) || 1;
+      else if (goal.frequency === 'monthly') {
+        const diffMonths = (deadline.getFullYear() - createdDate.getFullYear()) * 12 + (deadline.getMonth() - createdDate.getMonth());
+        periods = diffMonths > 0 ? diffMonths : 1;
+      }
+      const amountPerPeriod = targetAmount / periods;
+
+      if (goal.frequency === 'daily') {
+        for (let month = 0; month < 12; month++) {
+          const days = new Date(year, month + 1, 0).getDate();
+          for (let d = 1; d <= days; d++) {
+            const current = new Date(year, month, d);
+            if (current >= createdDate && current <= deadline) {
+              events.push({
+                id: `goal-${goal.id}-${month}-${d}`,
+                type: 'goal',
+                description: `${goal.icon || '🎯'} Meta: ${goal.name}`,
+                amount: amountPerPeriod,
+                date: `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+              });
+            }
+          }
+        }
+      } else if (goal.frequency === 'monthly') {
+        const targetDay = createdDate.getDate();
+        for (let month = 0; month < 12; month++) {
+          const maxDays = new Date(year, month + 1, 0).getDate();
+          const d = Math.min(targetDay, maxDays);
+          const current = new Date(year, month, d);
+          if (current >= createdDate && current <= deadline) {
+            events.push({
+              id: `goal-${goal.id}-${month}`,
+              type: 'goal',
+              description: `${goal.icon || '🎯'} Meta: ${goal.name}`,
+              amount: amountPerPeriod,
+              date: `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+            });
+          }
+        }
+      } else if (goal.frequency === 'weekly') {
+        const targetDayOfWeek = createdDate.getDay();
+        for (let month = 0; month < 12; month++) {
+          const days = new Date(year, month + 1, 0).getDate();
+          for (let d = 1; d <= days; d++) {
+            const current = new Date(year, month, d);
+            if (current.getDay() === targetDayOfWeek && current >= createdDate && current <= deadline) {
+              events.push({
+                id: `goal-${goal.id}-${month}-${d}`,
+                type: 'goal',
+                description: `${goal.icon || '🎯'} Meta: ${goal.name}`,
+                amount: amountPerPeriod,
+                date: `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
               });
             }
           }

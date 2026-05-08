@@ -39,6 +39,35 @@ export async function parseUserIntent(message: string, context?: ParsedIntent) {
     }
   }
 
+  if (parsed.intent === 'create_goal') {
+    if (!parsed.goal_name || !parsed.goal_target_amount || !parsed.goal_deadline || !parsed.goal_frequency) {
+      return {
+        success: true,
+        message: parsed.reply_message || "Preciso de mais algumas informações para criar seu objetivo.",
+        payload: parsed
+      }
+    }
+    return {
+      success: true,
+      message: parsed.reply_message || "Tudo certo para criar seu objetivo! Dá uma olhada na prévia abaixo:",
+      isGoalPreview: true,
+      payload: parsed
+    }
+  }
+
+  if (parsed.intent === 'goal_deposit') {
+    return {
+      success: true,
+      message: parsed.reply_message || "Posso confirmar esse aporte para a sua meta?",
+      isGoalDeposit: true,
+      payload: parsed
+    }
+  }
+
+  if (parsed.intent === 'goal_status') {
+    return await generateGoalStatus(parsed);
+  }
+
   // Se for register_fixed, reminder, ou register normal:
   return {
     success: true,
@@ -351,4 +380,128 @@ export async function deleteReminder(id: string) {
   revalidatePath("/notificacoes")
 
   return { success: true }
+}
+
+async function generateGoalStatus(parsed: ParsedIntent) {
+  const supabase = await createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) throw new Error("Unauthorized")
+
+  if (!parsed.goal_name) {
+    return { success: false, message: "Não consegui identificar qual objetivo você quer consultar." }
+  }
+
+  const { data: goals, error } = await supabase
+    .from('goals')
+    .select('*, goal_deposits(amount)')
+    .eq('user_id', user.id)
+    .ilike('name', `%${parsed.goal_name}%`)
+    .limit(1)
+
+  if (error || !goals || goals.length === 0) {
+    return { success: false, message: `Não encontrei nenhum objetivo com o nome parecido com "${parsed.goal_name}".` }
+  }
+
+  const goal = goals[0]
+  const totalSaved = goal.goal_deposits.reduce((acc: number, dep: any) => acc + Number(dep.amount), 0)
+  const remaining = Number(goal.target_amount) - totalSaved
+  const percentage = (totalSaved / Number(goal.target_amount)) * 100
+
+  let msg = `O seu objetivo **${goal.icon || '🎯'} ${goal.name}** está com ${percentage.toFixed(1)}% concluído!\n\n`
+  msg += `Você já guardou R$ ${totalSaved.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} de R$ ${Number(goal.target_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.\n`
+  
+  if (remaining > 0) {
+    msg += `Faltam R$ ${remaining.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} para você atingir a meta até ${new Date(goal.deadline).toLocaleDateString('pt-BR')}.`
+  } else {
+    msg += `🎉 Parabéns! Você já atingiu (ou ultrapassou) o valor desse objetivo!`
+  }
+
+  return {
+    success: true,
+    message: msg,
+    isReport: true
+  }
+}
+
+export async function confirmGoal(parsed: ParsedIntent) {
+  const supabase = await createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) throw new Error("Unauthorized")
+
+  const { error: dbError } = await supabase
+    .from('goals')
+    .insert({
+      user_id: user.id,
+      name: parsed.goal_name,
+      target_amount: parsed.goal_target_amount,
+      deadline: parsed.goal_deadline,
+      frequency: parsed.goal_frequency,
+      icon: parsed.goal_icon || '🎯'
+    })
+
+  if (dbError) {
+    return { success: false, message: "Erro ao salvar objetivo no banco de dados. " + dbError.message }
+  }
+
+  revalidatePath("/dashboard")
+  revalidatePath("/chat")
+  revalidatePath("/objetivos")
+
+  return {
+    success: true,
+    message: `🎯 Objetivo "${parsed.goal_name}" criado com sucesso! Vamos começar a guardar?`
+  }
+}
+
+export async function confirmGoalDeposit(parsed: ParsedIntent) {
+  const supabase = await createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) throw new Error("Unauthorized")
+
+  // Find the goal
+  const { data: goals, error: fetchError } = await supabase
+    .from('goals')
+    .select('id, name')
+    .eq('user_id', user.id)
+    .ilike('name', `%${parsed.goal_name}%`)
+    .limit(1)
+
+  if (fetchError || !goals || goals.length === 0) {
+    return { success: false, message: `Não encontrei nenhum objetivo parecido com "${parsed.goal_name}".` }
+  }
+
+  const goal = goals[0]
+
+  // Convert amount, ensuring it's a valid positive number
+  const amountToSave = Math.abs(Number(parsed.amount || 0));
+  if (amountToSave <= 0) {
+    return { success: false, message: "Por favor, informe um valor maior que zero." };
+  }
+
+  // Pegar data atual no fuso do Brasil para registrar
+  const now = new Date();
+  const brOffset = -3 * 60; // UTC-3
+  const brTime = new Date(now.getTime() + (brOffset - now.getTimezoneOffset()) * 60000);
+  const todayStr = brTime.toISOString().split('T')[0];
+
+  const { error: dbError } = await supabase
+    .from('goal_deposits')
+    .insert({
+      goal_id: goal.id,
+      amount: amountToSave,
+      deposit_date: todayStr
+    })
+
+  if (dbError) {
+    return { success: false, message: "Erro ao salvar aporte no banco de dados. " + dbError.message }
+  }
+
+  revalidatePath("/dashboard")
+  revalidatePath("/chat")
+  revalidatePath("/objetivos")
+
+  return {
+    success: true,
+    message: `💰 Aporte de R$ ${amountToSave.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} adicionado ao objetivo "${goal.name}" com sucesso! 🎉`
+  }
 }

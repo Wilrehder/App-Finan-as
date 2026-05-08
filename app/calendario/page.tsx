@@ -71,12 +71,13 @@ export default function CalendarioPage() {
     setView('month')
   }
 
-  // Map dateStr -> { hasIncome, hasExpense, hasReminder }
-  const eventDateMap = events.reduce<Record<string, { hasIncome: boolean; hasExpense: boolean; hasReminder: boolean }>>((acc, e) => {
-    if (!acc[e.date]) acc[e.date] = { hasIncome: false, hasExpense: false, hasReminder: false }
+  // Map dateStr -> { hasIncome, hasExpense, hasReminder, hasGoal }
+  const eventDateMap = events.reduce<Record<string, { hasIncome: boolean; hasExpense: boolean; hasReminder: boolean; hasGoal: boolean }>>((acc, e) => {
+    if (!acc[e.date]) acc[e.date] = { hasIncome: false, hasExpense: false, hasReminder: false, hasGoal: false }
     if (e.type === 'income') acc[e.date].hasIncome = true
     if (e.type === 'expense') acc[e.date].hasExpense = true
     if (e.type === 'reminder') acc[e.date].hasReminder = true
+    if (e.type === 'goal') acc[e.date].hasGoal = true
     return acc
   }, {})
 
@@ -120,12 +121,13 @@ export default function CalendarioPage() {
                         <div className={`text-center flex justify-center items-center rounded-full ${isToday ? 'bg-red-500 text-white w-4 h-4 mx-auto' : 'text-foreground'}`}>
                           {d}
                         </div>
-                        {/* dots: expense = red, income = green, reminder = blue */}
+                        {/* dots: expense = red, income = green, reminder = blue, goal = purple */}
                         {info && !isToday && (
                           <div className="flex gap-[1px] mt-[1px]">
                             {info.hasExpense && <div className="w-[3px] h-[3px] rounded-full bg-red-500/70" />}
                             {info.hasIncome && <div className="w-[3px] h-[3px] rounded-full bg-green-500/70" />}
                             {info.hasReminder && <div className="w-[3px] h-[3px] rounded-full bg-blue-500/70" />}
+                            {info.hasGoal && <div className="w-[3px] h-[3px] rounded-full bg-purple-500/70" />}
                           </div>
                         )}
                       </div>
@@ -200,6 +202,7 @@ export default function CalendarioPage() {
                         {hasExpense && <div className="w-1.5 h-1.5 rounded-full bg-red-500/80" />}
                         {hasIncome && <div className="w-1.5 h-1.5 rounded-full bg-green-500/80" />}
                         {info?.hasReminder && <div className="w-1.5 h-1.5 rounded-full bg-blue-500/80" />}
+                        {info?.hasGoal && <div className="w-1.5 h-1.5 rounded-full bg-purple-500/80" />}
                       </div>
                     </div>
                   )
@@ -235,21 +238,24 @@ export default function CalendarioPage() {
                 <div className="flex items-center gap-3">
                   <div className={`w-3 h-3 rounded-full ${
                     ev.type === 'income' ? 'bg-green-500' : 
-                    ev.type === 'reminder' ? 'bg-blue-500' : 'bg-red-500'
+                    ev.type === 'reminder' ? 'bg-blue-500' : 
+                    ev.type === 'goal' ? 'bg-purple-500' : 'bg-red-500'
                   }`} />
                   <div className="flex flex-col">
                     <span className="font-medium text-sm leading-tight">{ev.description}</span>
                     <span className="text-[10px] text-muted-foreground mt-0.5">
                       {ev.type === 'reminder' 
                         ? `Lembrete às ${ev.time}`
+                        : ev.type === 'goal' 
+                        ? `Aporte planejado`
                         : `Todo ${ev.is_business_day ? `${ev.day_of_month}º dia útil` : `dia ${ev.day_of_month}`}`}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {ev.type !== 'reminder' && (
-                    <span className={`font-semibold text-sm ${ev.type === 'income' ? 'text-green-500' : 'text-foreground'}`}>
-                      {ev.type === 'income' ? '+' : '-'} R$ {ev.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <span className={`font-semibold text-sm ${ev.type === 'income' || ev.type === 'goal' ? 'text-green-500' : 'text-foreground'}`}>
+                      {ev.type === 'income' || ev.type === 'goal' ? '+' : '-'} R$ {ev.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   )}
                   {ev.type === 'reminder' ? (
@@ -267,6 +273,8 @@ export default function CalendarioPage() {
                         <Trash2 size={16} />
                       </button>
                     </div>
+                  ) : ev.type === 'goal' ? (
+                    <span className="text-xs text-muted-foreground">Automático</span>
                   ) : (
                     <EditRecurringModal item={{
                       id: ev.recurring_id!,

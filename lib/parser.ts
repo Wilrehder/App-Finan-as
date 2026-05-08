@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 export type TransactionType = 'income' | 'expense';
-export type ChatIntentType = 'register' | 'register_fixed' | 'incomplete_fixed' | 'report' | 'manage_fixed' | 'delete' | 'reminder' | 'unknown';
+export type ChatIntentType = 'register' | 'register_fixed' | 'incomplete_fixed' | 'report' | 'manage_fixed' | 'delete' | 'reminder' | 'create_goal' | 'goal_deposit' | 'goal_status' | 'unknown';
 
 export interface ParsedIntent {
   intent: ChatIntentType;
@@ -28,6 +28,13 @@ export interface ParsedIntent {
   frequency?: 'once' | 'daily' | 'weekly' | 'monthly';
   specific_date?: string;
   day_of_week?: number;
+
+  // Para metas (goals):
+  goal_name?: string;
+  goal_target_amount?: number;
+  goal_deadline?: string; // YYYY-MM-DD
+  goal_frequency?: 'daily' | 'weekly' | 'monthly';
+  goal_icon?: string;
 }
 
 const openai = new OpenAI({
@@ -68,6 +75,11 @@ O JSON deve seguir a interface TypeScript:
   "remind_at": "HH:MM", // OPCIONAL
   "frequency": "once" | "daily" | "weekly" | "monthly", // OPCIONAL
   "specific_date": "YYYY-MM-DD", // OPCIONAL
+  "goal_name": "string", // OPCIONAL
+  "goal_target_amount": number, // OPCIONAL
+  "goal_deadline": "YYYY-MM-DD", // OPCIONAL
+  "goal_frequency": "daily" | "weekly" | "monthly", // OPCIONAL
+  "goal_icon": "string", // OPCIONAL (um emoji)
   "reply_message": "string" // OBRIGATÓRIO: Crie uma mensagem amigável, humanizada (com emojis curtos) confirmando o que você entendeu e pedindo confirmação.
 }
 
@@ -90,17 +102,25 @@ Regras:
 6. 'reminder': Para criar lembretes/alarmes ("me lembre de pagar luz às 10:30 amanhã").
    - Preencha 'remind_at' no formato 24h HH:MM, 'frequency' ('once', 'daily', etc), e a 'description'.
    - Se for 'once', preencha 'specific_date' (YYYY-MM-DD).
-8. 'reply_message': Você DEVE formular uma resposta amigável e conversacional como se fosse o Finchat. 
+7. 'create_goal': Para criar metas financeiras/objetivos ("Quero juntar dinheiro para uma viagem", "Criar meta de 20 mil até dezembro").
+   - Preencha 'goal_name', 'goal_target_amount', 'goal_deadline' (YYYY-MM-DD) e 'goal_frequency' ('daily', 'weekly' ou 'monthly').
+   - Escolha um emoji coerente com o objetivo e preencha 'goal_icon'.
+   - Se faltar algum dado essencial (nome, valor desejado, data limite ou frequência), retorne a intent 'create_goal' e use 'reply_message' para perguntar EXATAMENTE o que falta.
+8. 'goal_deposit': Para registrar dinheiro guardado/aportes para uma meta existente ("Guardei 300 reais pro setup", "Acabei de juntar 50 pra minha viagem").
+   - Preencha 'amount' (o valor guardado) e 'goal_name' (o nome do objetivo para vincular).
+9. 'goal_status': Para perguntar sobre o progresso de uma meta ("Quanto falta pra minha viagem?").
+   - Preencha 'goal_name'.
+10. 'reply_message': Você DEVE formular uma resposta amigável e conversacional como se fosse o Finchat. 
    - Se for 'register', diga algo como: "Pode deixar! 📝 Vou anotar aqui a sua despesa de R$ 50,00 com Alimentação pra hoje. Posso confirmar?"
-   - Se for 'incomplete_fixed', faça a pergunta que falta: "Qual é o valor dessa conta?" ou "Qual dia do mês ela vence?"
+   - Se for 'create_goal' faltando informações, faça a pergunta que falta: "Qual é o valor total que deseja juntar?" ou "Até quando você planeja concluir?"
    - Seja natural e prestativo. Use o estilo de conversa de um assistente de WhatsApp brasileiro.
    - SEMPRE formate valores monetários no padrão brasileiro na resposta (ex: R$ 1.500,00 com ponto de milhar e duas casas decimais).
 9. Contexto: O usuário pode estar apenas respondendo a uma pergunta do robô.
    Contexto Atual do Bot: ${JSON.stringify(context || {})}
    - MANTENHA TODOS OS DADOS DO CONTEXTO: Se o contexto existir, você DEVE retornar o JSON com todos os dados do contexto misturados com as novas informações do usuário.
    - Exemplo: Se o contexto dizia 'incomplete_fixed' (faltava o valor, mas tinha description e type) e o usuário disse apenas "50 reais", você deve devolver a mesma conta com tudo que tinha, mudando o 'amount' para 50 e o 'intent' para 'register_fixed'.
-10. Se não entender nada, ou for papo furado, retorne {"intent": "unknown", "reply_message": "Putz, não entendi 😅. Como posso te ajudar hoje?"}.
-11. RETORNE SOMENTE O JSON PURO. NADA DE TEXTO ADICIONAL.`;
+11. Se não entender nada, ou for papo furado, retorne {"intent": "unknown", "reply_message": "Putz, não entendi 😅. Como posso te ajudar hoje?"}.
+12. RETORNE SOMENTE O JSON PURO. NADA DE TEXTO ADICIONAL.`;
 
   try {
     const response = await openai.chat.completions.create({

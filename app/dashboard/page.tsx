@@ -3,7 +3,7 @@ import { syncRecurringTransactions } from "@/lib/sync"
 import { DashboardFilters } from "@/components/dashboard-filters"
 import { ExpenseChart, CHART_COLORS } from "@/components/ExpenseChart"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { ArrowUpIcon, ArrowDownIcon, PieChart, TrendingUp, Calendar } from "lucide-react"
+import { ArrowUpIcon, ArrowDownIcon, PieChart, TrendingUp, Calendar, ChevronRight } from "lucide-react"
 import { ExportPdfButton } from "@/components/export-pdf-button"
 import { NotificationBell } from "@/components/notification-bell"
 import { NotificationOnboardingModal } from "@/components/notification-onboarding-modal"
@@ -110,6 +110,26 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
           </div>
         </CardContent>
       </Card>
+
+      <Link href="/objetivos" className="block animate-in fade-in zoom-in-95 duration-500 delay-100">
+        <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 hover:border-indigo-500/40 transition-colors shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+            <span className="text-6xl">🎯</span>
+          </div>
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <span className="text-lg">🎯</span>
+              </div>
+              <div>
+                <h3 className="font-semibold text-base">Meus Objetivos</h3>
+                <p className="text-xs text-muted-foreground">Acompanhe suas metas financeiras</p>
+              </div>
+            </div>
+            <ChevronRight className="text-muted-foreground h-5 w-5" />
+          </CardContent>
+        </Card>
+      </Link>
 
       <FinInsights />
 

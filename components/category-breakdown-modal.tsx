@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { PieChart, List, X, ArrowRightLeft, GripVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { updateTransactionCategory } from "@/app/dashboard/actions"
@@ -62,8 +63,21 @@ export function CategoryBreakdownModal({ transactions, onClose }: CategoryBreakd
     setUpdating(false)
   }
 
-  return (
-    <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    // Evita scroll no body enquanto o modal estiver aberto
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = "unset"
+    }
+  }, [])
+
+  if (!mounted) return null
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-secondary border border-white/10 w-full sm:max-w-md h-[85vh] sm:h-[80vh] rounded-t-3xl sm:rounded-3xl flex flex-col shadow-2xl animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10 duration-300">
         
         <div className="flex items-center justify-between p-5 border-b border-white/10">
@@ -178,4 +192,6 @@ export function CategoryBreakdownModal({ transactions, onClose }: CategoryBreakd
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }

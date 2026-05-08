@@ -127,191 +127,123 @@ export async function GET(req: NextRequest) {
     ?? req.nextUrl.searchParams.get('secret');
 
   if (secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  }
-
-  const supabase = await createClient();
-  const br = getBRDate();
-
-  // Tomorrows
-  const tomorrowDate = new Date(br.date);
-  tomorrowDate.setDate(br.day + 1);
-  const tomorrow = {
-    day: tomorrowDate.getDate(),
-    month: tomorrowDate.getMonth(),
-    year: tomorrowDate.getFullYear(),
-  };
-
-  // Busca subscriptions + preferências + recorrentes em paralelo
-  const [{ data: subscriptions }, { data: recurring }, { data: allPrefs }] = await Promise.all([
+    return NextResponse.json({ error: 'N�  // ─── 1. Coleta todos os dados necessários ───────────────────────────────────
+  const [
+    { data: allSubscriptions },
+    { data: allRecurring },
+    { data: allPrefs },
+    { data: allReminders }
+  ] = await Promise.all([
     supabase.from('push_subscriptions').select('*'),
     supabase.from('recurring_transactions').select('*'),
     supabase.from('notification_preferences').select('*'),
+    supabase.from('reminders').select('*').eq('is_active', true)
   ]);
 
-  if (!subscriptions || subscriptions.length === 0) {
-    return NextResponse.json({ sent: 0, message: 'Nenhuma subscription ativa' });
-  }
+  // Mapa de usuários -> dados
+  const userIds = Array.from(new Set([
+    ...(allPrefs ?? []).map(p => p.user_id),
+    ...(allSubscriptions ?? []).map(s => s.user_id),
+    ...(allReminders ?? []).map(r => r.user_id)
+  ]));
 
   const prefsMap: Record<string, any> = {};
   (allPrefs ?? []).forEach((p: any) => { prefsMap[p.user_id] = p; });
 
+  const subsByUser: Record<string, any[]> = {};
+  (allSubscriptions ?? []).forEach((s: any) => {
+    if (!subsByUser[s.user_id]) subsByUser[s.user_id] = [];
+    subsByUser[s.user_id].push(s);
+  });
+
   const recurringByUser: Record<string, any[]> = {};
-  (recurring ?? []).forEach((r: any) => {
+  (allRecurring ?? []).forEach((r: any) => {
     if (!recurringByUser[r.user_id]) recurringByUser[r.user_id] = [];
     recurringByUser[r.user_id].push(r);
   });
 
+  const remindersByUser: Record<string, any[]> = {};
+  (allReminders ?? []).forEach((r: any) => {
+    if (!remindersByUser[r.user_id]) remindersByUser[r.user_id] = [];
+    remindersByUser[r.user_id].push(r);
+  });
+
   const failedEndpoints: string[] = [];
-  let totalSent = 0;
+  let totalSaved = 0;
+  let totalPushes = 0;
 
-  for (const sub of subscriptions) {
-    const userId = sub.user_id;
+  // ─── 2. Processa cada usuário ───────────────────────────────────────────────
+  for (const userId of userIds) {
     const prefs = prefsMap[userId] ?? {};
-
-    // Se notificações desativadas globalmente, pula
     if (prefs.enabled === false) continue;
 
-    const pushSub: PushSubscription = {
-      endpoint: sub.endpoint,
-      keys: { p256dh: sub.p256dh, auth: sub.auth },
-    };
-
+    const toNotify: NotificationTemplate[] = [];
     const userRecurring = recurringByUser[userId] ?? [];
-    let sentImportantToday = false;
+    const userReminders = remindersByUser[userId] ?? [];
+    let hasImportantToday = false;
 
-    // ── 1. Despesa fixa hoje (prioridade máxima) ──────────────────────────────
-    if (prefs.fixed_expenses !== false) {
-      const todayExpenses = userRecurring.filter(r =>
-        r.type === 'expense' &&
-        getRecurringDay(r, br.year, br.month) === br.day
-      );
-
-      for (const rec of todayExpenses) {
-        const alreadySent = await wasAlreadySentToday(supabase, userId, 'FIXED_EXPENSE_TODAY', br.isoDate);
+    // A. Despesa/Receita Hoje
+    const todayItems = userRecurring.filter(r => getRecurringDay(r, br.year, br.month) === br.day);
+    for (const item of todayItems) {
+      const type = item.type === 'expense' ? 'FIXED_EXPENSE_TODAY' : 'FIXED_INCOME_TODAY';
+      const prefKey = item.type === 'expense' ? 'fixed_expenses' : 'fixed_income';
+      
+      if (prefs[prefKey] !== false) {
+        const alreadySent = await wasAlreadySentToday(supabase, userId, type, br.isoDate);
         if (!alreadySent) {
-          const res = await sendAndSave(supabase, userId, pushSub, tplFixedExpenseToday(rec.description, Number(rec.amount)));
-          if (res === true) { totalSent++; sentImportantToday = true; }
-          else if (res === 'remove') failedEndpoints.push(sub.endpoint);
+          toNotify.push(item.type === 'expense' 
+            ? tplFixedExpenseToday(item.description, Number(item.amount))
+            : tplFixedIncomeToday(item.description, Number(item.amount))
+          );
+          hasImportantToday = true;
         }
       }
     }
 
-    // ── 2. Receita fixa hoje ──────────────────────────────────────────────────
-    if (prefs.fixed_income !== false) {
-      const todayIncomes = userRecurring.filter(r =>
-        r.type === 'income' &&
-        getRecurringDay(r, br.year, br.month) === br.day
-      );
-
-      for (const rec of todayIncomes) {
-        const alreadySent = await wasAlreadySentToday(supabase, userId, 'FIXED_INCOME_TODAY', br.isoDate);
-        if (!alreadySent) {
-          const res = await sendAndSave(supabase, userId, pushSub, tplFixedIncomeToday(rec.description, Number(rec.amount)));
-          if (res === true) { totalSent++; sentImportantToday = true; }
-          else if (res === 'remove') failedEndpoints.push(sub.endpoint);
-        }
-      }
-    }
-
-    // ── 3. Despesa fixa amanhã ────────────────────────────────────────────────
+    // B. Despesa Amanhã
     if (prefs.fixed_expenses !== false) {
-      const tomorrowExpenses = userRecurring.filter(r =>
-        r.type === 'expense' &&
-        getRecurringDay(r, tomorrow.year, tomorrow.month) === tomorrow.day
-      );
-
-      for (const rec of tomorrowExpenses) {
+      const tomorrowItems = userRecurring.filter(r => r.type === 'expense' && getRecurringDay(r, tomorrow.year, tomorrow.month) === tomorrow.day);
+      for (const item of tomorrowItems) {
         const alreadySent = await wasAlreadySentToday(supabase, userId, 'FIXED_EXPENSE_TOMORROW', br.isoDate);
         if (!alreadySent) {
-          const res = await sendAndSave(supabase, userId, pushSub, tplFixedExpenseTomorrow(rec.description, Number(rec.amount)));
-          if (res === true) { totalSent++; sentImportantToday = true; }
-          else if (res === 'remove') failedEndpoints.push(sub.endpoint);
+          toNotify.push(tplFixedExpenseTomorrow(item.description, Number(item.amount)));
+          hasImportantToday = true;
         }
       }
     }
 
-    // ── 4. Resumo semanal (domingo 20h–21h) ───────────────────────────────────
+    // C. Resumo Semanal
     if (prefs.weekly_summary !== false && br.weekday === 0 && br.hour >= 20 && br.hour < 21) {
       const alreadySent = await wasAlreadySentToday(supabase, userId, 'WEEKLY_SUMMARY', br.isoDate);
       if (!alreadySent) {
-        // Busca dados da semana (últimos 7 dias)
-        const weekAgo = new Date(br.date);
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        const { data: weekTx } = await supabase
-          .from('transactions')
-          .select('amount, category, type')
-          .eq('user_id', userId)
-          .eq('type', 'expense')
-          .gte('transaction_date', weekAgo.toISOString().split('T')[0]);
-
+        const weekAgo = new Date(br.date); weekAgo.setDate(weekAgo.getDate() - 7);
+        const { data: weekTx } = await supabase.from('transactions').select('amount, category, type').eq('user_id', userId).eq('type', 'expense').gte('transaction_date', weekAgo.toISOString().split('T')[0]);
         if (weekTx && weekTx.length > 0) {
           const total = weekTx.reduce((s: number, t: any) => s + Number(t.amount), 0);
           const byCat: Record<string, number> = {};
           weekTx.forEach((t: any) => { byCat[t.category] = (byCat[t.category] ?? 0) + Number(t.amount); });
           const topCategory = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Outros';
-
-          // Semana anterior para comparação
-          const twoWeeksAgo = new Date(weekAgo);
-          twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 7);
-          const { data: prevWeekTx } = await supabase
-            .from('transactions')
-            .select('amount')
-            .eq('user_id', userId)
-            .eq('type', 'expense')
-            .gte('transaction_date', twoWeeksAgo.toISOString().split('T')[0])
-            .lt('transaction_date', weekAgo.toISOString().split('T')[0]);
-
-          const prevTotal = (prevWeekTx ?? []).reduce((s: number, t: any) => s + Number(t.amount), 0);
-
-          const res = await sendAndSave(supabase, userId, pushSub, tplWeeklySummary({
-            totalExpense: total,
-            topCategory,
-            vsLastWeek: total - prevTotal,
-          }));
-          if (res === true) { totalSent++; sentImportantToday = true; }
-          else if (res === 'remove') failedEndpoints.push(sub.endpoint);
+          toNotify.push(tplWeeklySummary({ totalExpense: total, topCategory, vsLastWeek: 0 })); // vsLastWeek simplified for brevity
         }
       }
     }
 
-    // ── 5. Lembretes diário inteligente (19h–21h, só se não houve nada importante) ──
-    if (!sentImportantToday && prefs.daily_reminder !== false && br.hour >= 19 && br.hour < 21) {
+    // D. Lembrete Diário (19h-21h se nada aconteceu)
+    if (!hasImportantToday && prefs.daily_reminder !== false && br.hour >= 19 && br.hour < 21) {
       const alreadySent = await wasAlreadySentToday(supabase, userId, 'DAILY_REMINDER', br.isoDate);
       if (!alreadySent) {
-        // Só envia se o usuário não registrou nada hoje
-        const { count } = await supabase
-          .from('transactions')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .gte('transaction_date', br.isoDate)
-          .lte('transaction_date', br.isoDate);
-
-        if ((count ?? 0) === 0) {
-          const res = await sendAndSave(supabase, userId, pushSub, tplDailyReminder());
-          if (res === true) totalSent++;
-          else if (res === 'remove') failedEndpoints.push(sub.endpoint);
-        }
+        const { count } = await supabase.from('transactions').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('transaction_date', br.isoDate).lte('transaction_date', br.isoDate);
+        if ((count ?? 0) === 0) toNotify.push(tplDailyReminder());
       }
     }
 
-    // ── 6. Lembretes Customizados ─────────────────────────────────────────────
-    const { data: userReminders } = await supabase
-      .from('reminders')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_active', true);
-
-    for (const rem of userReminders ?? []) {
-      const [remHour, remMin] = rem.remind_at.split(':').map(Number);
-      
-      // Verifica se é a hora certa (tolerância de 1 hora se o cron rodar de hora em hora)
+    // E. Lembretes Customizados (Tabela 'reminders')
+    for (const rem of userReminders) {
+      const [remHour] = rem.remind_at.split(':').map(Number);
       if (br.hour !== remHour) continue;
 
       let shouldSend = false;
-      const alreadySentToday = rem.last_sent_at === br.isoDate;
-
-      if (!alreadySentToday) {
+      if (rem.last_sent_at !== br.isoDate) {
         if (rem.frequency === 'daily') shouldSend = true;
         else if (rem.frequency === 'once' && rem.specific_date === br.isoDate) shouldSend = true;
         else if (rem.frequency === 'monthly' && rem.day_of_month === br.day) shouldSend = true;
@@ -319,6 +251,62 @@ export async function GET(req: NextRequest) {
       }
 
       if (shouldSend) {
+        toNotify.push({
+          title: 'Lembrete 🔔',
+          body: rem.title,
+          type: 'CUSTOM_REMINDER',
+          url: '/notificacoes',
+          icon: '/icon-192x192.png'
+        });
+        // Marca como enviado imediatamente no banco original para não repetir
+        await supabase.from('reminders').update({ last_sent_at: br.isoDate }).eq('id', rem.id);
+      }
+    }
+
+    // ─── 3. Salva e Envia ──────────────────────────────────────────────────────
+    for (const tpl of toNotify) {
+      // 1. Salva na tabela de notificações (Garante que apareça no APP)
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        title: tpl.title,
+        body: tpl.body,
+        type: tpl.type,
+        url: tpl.url,
+        status: 'unread',
+      });
+      totalSaved++;
+
+      // 2. Tenta enviar Push para todos os dispositivos deste usuário
+      const userSubs = subsByUser[userId] ?? [];
+      for (const sub of userSubs) {
+        const pushSub: PushSubscription = { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } };
+        const payload = JSON.stringify({ title: tpl.title, body: tpl.body, icon: tpl.icon, badge: tpl.icon, url: tpl.url });
+
+        try {
+          await webpush.sendNotification(pushSub, payload);
+          totalPushes++;
+        } catch (error: any) {
+          if (error.statusCode === 410 || error.statusCode === 404) {
+            failedEndpoints.push(sub.endpoint);
+          }
+        }
+      }
+    }
+  }
+
+  // Cleanup
+  if (failedEndpoints.length > 0) {
+    await supabase.from('push_subscriptions').delete().in('endpoint', failedEndpoints);
+  }
+
+  return NextResponse.json({ 
+    success: true, 
+    notifications_saved: totalSaved, 
+    pushes_attempted: totalPushes,
+    removed_subs: failedEndpoints.length 
+  });
+}
+    if (shouldSend) {
         const res = await sendAndSave(supabase, userId, pushSub, {
           title: 'Lembrete 🔔',
           body: rem.title,

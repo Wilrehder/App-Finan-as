@@ -1,7 +1,7 @@
 import { getDashboardData, getAvailablePeriods } from "./actions"
 import { syncRecurringTransactions } from "@/lib/sync"
 import { DashboardFilters } from "@/components/dashboard-filters"
-import { ExpenseChart } from "@/components/ExpenseChart"
+import { ExpenseChart, CHART_COLORS } from "@/components/ExpenseChart"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { ArrowUpIcon, ArrowDownIcon, PieChart, TrendingUp, Calendar } from "lucide-react"
 import { ExportPdfButton } from "@/components/export-pdf-button"
@@ -114,11 +114,11 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
               <CardTitle className="text-lg">Gastos por Categoria</CardTitle>
             </CardHeader>
             <CardContent>
-              <ExpenseChart data={data.chartData} />
+              <ExpenseChart data={data.chartData} transactions={data.transactions} />
               <div className="flex flex-wrap gap-2 mt-4 justify-center">
                 {data.chartData.slice(0, 4).map((item, i) => (
                   <div key={item.name} className="flex items-center text-xs text-muted-foreground">
-                    <div className="w-2 h-2 rounded-full mr-1 bg-primary" style={{ opacity: 1 - i * 0.2 }} />
+                    <div className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
                     {item.name}
                   </div>
                 ))}

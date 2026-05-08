@@ -81,7 +81,7 @@ export function ExportPdfButton({ transactions, income, expense, balance, period
       <html lang="pt-BR">
       <head>
         <meta charset="UTF-8" />
-        <title>Extrato ${periodLabel} — Atlas</title>
+        <title>Extrato ${periodLabel} — Finchat</title>
         <style>
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body { font-family: system-ui, sans-serif; color: #1a1a1a; background: #fff; padding: 32px; }
@@ -106,7 +106,7 @@ export function ExportPdfButton({ transactions, income, expense, balance, period
       <body>
         <header>
           <div>
-            <h1>Atlas — Extrato Financeiro</h1>
+            <h1>Finchat — Extrato Financeiro</h1>
             <p class="subtitle">Relatório de movimentações do período</p>
           </div>
           <span class="period">${periodLabel}</span>
@@ -143,7 +143,7 @@ export function ExportPdfButton({ transactions, income, expense, balance, period
         </table>
 
         <footer>
-          Gerado por Atlas em ${new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
+          Gerado por Finchat em ${new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
           &nbsp;|&nbsp; 🔄 = Conta Fixa Recorrente
         </footer>
       </body>

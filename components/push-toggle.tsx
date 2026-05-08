@@ -134,7 +134,7 @@ export function PushToggle() {
   const testNotification = async () => {
     if (Notification.permission === "granted") {
       const reg = await getSWRegistration()
-      reg.showNotification("Atlas 💰", {
+      reg.showNotification("Finchat 💰", {
         body: "Notificações estão funcionando! 🎉",
         icon: "/icon-192x192.png",
         badge: "/icon-192x192.png",

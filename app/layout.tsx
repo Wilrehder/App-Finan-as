@@ -16,14 +16,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Atlas - Controle financeiro inteligente",
+  title: "Finchat - Controle financeiro inteligente",
   description: "Controle suas finanças de forma simples através de uma inteligência artificial.",
   manifest: "/manifest.json",
   themeColor: "#09090b",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Atlas",
+    title: "Finchat",
   },
   icons: {
     icon: "/logo.png",

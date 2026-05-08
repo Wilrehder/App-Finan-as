@@ -17,14 +17,14 @@ export default function LoginPage(props: { searchParams: Promise<{ error?: strin
             <div className="relative w-20 h-20">
               <Image 
                 src="/logo.png" 
-                alt="Atlas Logo" 
+                alt="Finchat Logo" 
                 fill
                 className="object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]"
                 priority
               />
             </div>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Atlas</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Finchat</h1>
           <p className="text-muted-foreground text-sm uppercase tracking-widest mt-1">
             Controle Financeiro Inteligente
           </p>

@@ -8,8 +8,8 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <header className="flex items-center justify-between p-6">
         <div className="font-bold text-xl tracking-tight flex items-center gap-2">
-          <Image src="/logo.png" alt="Atlas" width={32} height={32} className="object-contain" />
-          Atlas
+          <Image src="/logo.png" alt="Finchat" width={32} height={32} className="object-contain" />
+          Finchat
         </div>
         <Link href="/login">
           <Button variant="ghost" className="rounded-full">Entrar</Button>

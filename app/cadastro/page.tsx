@@ -17,7 +17,7 @@ export default function CadastroPage(props: { searchParams: Promise<{ error?: st
             <div className="relative w-20 h-20">
               <Image 
                 src="/logo.png" 
-                alt="Atlas Logo" 
+                alt="Finchat Logo" 
                 fill
                 className="object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]"
                 priority
@@ -26,7 +26,7 @@ export default function CadastroPage(props: { searchParams: Promise<{ error?: st
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Criar Conta</h1>
           <p className="text-muted-foreground text-sm uppercase tracking-widest mt-1">
-            Junte-se ao Atlas
+            Junte-se ao Finchat
           </p>
         </div>
 

@@ -20,7 +20,7 @@ export function tplDailyReminder(): NotificationTemplate {
   return {
     type: 'DAILY_REMINDER',
     title: 'Como foi seu dia financeiro? 💬',
-    body: 'Registre seus gastos de hoje conversando com o Atlas.',
+    body: 'Registre seus gastos de hoje conversando com o Finchat.',
     url: '/chat',
     icon: '/icon-192x192.png',
   };

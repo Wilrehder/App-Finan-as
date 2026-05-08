@@ -533,9 +533,9 @@ export default function ChatPage() {
         <div className="flex items-center gap-2">
           {/* Logo sem fundo colorido para que a logo branca apareça corretamente */}
           <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
-            <Image src="/logo.png" alt="Atlas" width={32} height={32} className="object-contain" />
+            <Image src="/logo.png" alt="Finchat" width={32} height={32} className="object-contain" />
           </div>
-          <span className="font-bold text-lg tracking-tight">Atlas</span>
+          <span className="font-bold text-lg tracking-tight">Finchat</span>
         </div>
         <Link href="/calendario" className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-foreground hover:bg-secondary/80 transition-colors">
           <Calendar size={20} />
@@ -569,7 +569,7 @@ export default function ChatPage() {
               >
                 {msg.role === "bot" && (
                   <div className="flex items-center gap-2 mb-2 opacity-70 text-xs font-semibold tracking-wide uppercase">
-                    <Image src="/logo.png" alt="Atlas" width={14} height={14} className="object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" /> 
+                    <Image src="/logo.png" alt="Finchat" width={14} height={14} className="object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" /> 
                     Agente
                   </div>
                 )}

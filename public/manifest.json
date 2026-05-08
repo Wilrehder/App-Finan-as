@@ -1,6 +1,6 @@
 {
-  "name": "Atlas",
-  "short_name": "Atlas",
+  "name": "Finchat",
+  "short_name": "Finchat",
   "description": "Controle financeiro inteligente através de um chat.",
   "start_url": "/login",
   "display": "standalone",

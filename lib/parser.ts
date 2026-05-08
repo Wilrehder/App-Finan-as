@@ -20,6 +20,8 @@ export interface ParsedIntent {
   report_start_date?: string; // YYYY-MM-DD
   report_end_date?: string; // YYYY-MM-DD
   report_period_name?: string;
+  report_category?: string;
+  report_type?: 'income' | 'expense';
 
   // Para reminder:
   remind_at?: string; // HH:MM
@@ -61,6 +63,8 @@ O JSON deve seguir a interface TypeScript:
   "report_start_date": "YYYY-MM-DD", // OPCIONAL
   "report_end_date": "YYYY-MM-DD", // OPCIONAL
   "report_period_name": "string", // OPCIONAL (ex: "este mês", "janeiro")
+  "report_category": "string", // OPCIONAL
+  "report_type": "income" | "expense", // OPCIONAL
   "remind_at": "HH:MM", // OPCIONAL
   "frequency": "once" | "daily" | "weekly" | "monthly", // OPCIONAL
   "specific_date": "YYYY-MM-DD", // OPCIONAL
@@ -74,12 +78,15 @@ Regras:
    - 'transaction_date' DEVE ser inferido e colocado no formato YYYY-MM-DD com base em "ontem", "hoje", ou uma data.
 2. 'register_fixed': Para contas fixas/recorrentes ("netflix todo dia 10 custa 40", "salário todo 5 dia útil").
    - 'type' é 'expense' por padrão, a menos que seja claro que é receita. ISSO É OBRIGATÓRIO.
-   - Exige preencher 'day_of_month' ou 'is_business_day'.
-   - Se faltar o 'amount', retorne intent 'incomplete_fixed' para perguntarmos o valor, MANTENDO o 'type' e 'description' definidos.
+   - Preencha SEMPRE 'day_of_month' se um dia numérico for mencionado (ex: "todo dia 15" -> "day_of_month": 15).
+   - Se disser "dia útil", preencha 'is_business_day': true e coloque o número em 'day_of_month' (ex: "5 dia útil" -> day_of_month: 5).
+   - Se faltar o 'amount' ou faltar o dia do mês ('day_of_month'), retorne intent 'incomplete_fixed' e use 'reply_message' para perguntar EXATAMENTE o que falta, MANTENDO o que já foi fornecido.
 3. 'manage_fixed': Se o usuário pedir para ver, editar, cancelar assinaturas fixas ("ver minhas contas fixas").
 4. 'delete': Se pedir para apagar/desfazer a última transação ("apaga a última", "desfazer").
-5. 'report': Para pedir extratos/resumos ("quanto gastei esse mês?", "resumo de janeiro").
+5. 'report': Para pedir extratos/resumos ("quanto gastei esse mês?", "resumo de janeiro", "minhas despesas de mercado hoje").
    - Preencha 'report_start_date' e 'report_end_date' baseados no período solicitado, e um 'report_period_name'.
+   - Se o usuário pedir apenas de uma categoria (ex: mercado, alimentação), preencha 'report_category' (capitalize a primeira letra se for categoria).
+   - Se o usuário especificar apenas despesas ("gastei", "despesas") ou apenas receitas ("ganhei", "receitas"), preencha 'report_type' com 'expense' ou 'income'.
 6. 'reminder': Para criar lembretes/alarmes ("me lembre de pagar luz às 10:30 amanhã").
    - Preencha 'remind_at' no formato 24h HH:MM, 'frequency' ('once', 'daily', etc), e a 'description'.
    - Se for 'once', preencha 'specific_date' (YYYY-MM-DD).

@@ -175,6 +175,8 @@ export default function ChatPage() {
       };
 
       mediaRecorder.onstop = async () => {
+        killStream(); // Garantir que o microfone seja liberado completamente do iOS
+        
         // Usa o MIME real gravado (não o que foi pedido — no iOS podem divergir)
         const actualMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
 
@@ -235,7 +237,7 @@ export default function ChatPage() {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
       playSound('stop')
-      // NÃO para as tracks aqui — mantém a permissão ativa para não pedir de novo
+      killStream(); // Força o encerramento das tracks de áudio aqui também
     }
   }
 
@@ -788,8 +790,12 @@ export default function ChatPage() {
                 className="flex-1 rounded-xl h-12"
                 onClick={() => {
                   if (!editModal) return;
-                  const newAmount = parseFloat(editAmount);
-                  if (isNaN(newAmount) || newAmount <= 0) return;
+                  const sanitizedAmount = editAmount.replace(',', '.');
+                  const newAmount = parseFloat(sanitizedAmount);
+                  if (isNaN(newAmount) || newAmount <= 0) {
+                     alert("Por favor, insira um valor válido maior que zero.");
+                     return;
+                  }
 
                   const updatedPayload = {
                     ...editModal.payload,
@@ -799,14 +805,14 @@ export default function ChatPage() {
                       : { transaction_date: editDate || editModal.payload.transaction_date }),
                   };
 
-                  // Atualiza o payload da mensagem existente
-                  setMessages(prev => prev.map(m =>
-                    m.id === editModal.msgId ? { ...m, payload: updatedPayload } : m
-                  ));
                   setEditModal(null);
+                  
+                  // Dispara a confirmação direto com os dados atualizados
+                  const confirmAction = editModal.payload.intent === 'register_fixed' ? 'confirmar_fixa' : 'confirmar';
+                  handleSend("Confirmar edição", confirmAction, updatedPayload);
                 }}
               >
-                ✅ Salvar
+                ✅ Salvar e Confirmar
               </Button>
             </div>
           </div>

@@ -55,12 +55,22 @@ async function generateReport(parsed: ParsedIntent) {
 
   await syncRecurringTransactions()
 
-  const { data: transactions, error } = await supabase
+  let query = supabase
     .from('transactions')
     .select('*')
     .eq('user_id', user.id)
     .gte('transaction_date', parsed.report_start_date)
     .lte('transaction_date', parsed.report_end_date)
+
+  if (parsed.report_category) {
+    query = query.ilike('category', `%${parsed.report_category}%`)
+  }
+
+  if (parsed.report_type) {
+    query = query.eq('type', parsed.report_type)
+  }
+
+  const { data: transactions, error } = await query
 
   if (error) {
     return { success: false, message: "Erro ao buscar relatório no banco." }
@@ -75,13 +85,31 @@ async function generateReport(parsed: ParsedIntent) {
 
   const balance = income - expense;
 
-  let reportText = `📊 **Relatório para ${parsed.report_period_name}**:\n\n`
-  reportText += `🔸 Receitas: R$ ${income.toFixed(2)}\n`
-  reportText += `🔻 Despesas: R$ ${expense.toFixed(2)}\n`
-  reportText += `💸 Saldo do Período: R$ ${balance.toFixed(2)}`
+  let title = `📊 **Relatório para ${parsed.report_period_name}**`
+  if (parsed.report_category) {
+    title = `📊 **Relatório de ${parsed.report_category} (${parsed.report_period_name})**`
+  } else if (parsed.report_type === 'expense') {
+    title = `📊 **Relatório de Despesas (${parsed.report_period_name})**`
+  } else if (parsed.report_type === 'income') {
+    title = `📊 **Relatório de Receitas (${parsed.report_period_name})**`
+  }
+
+  let reportText = `${title}\n\n`
 
   if (transactions.length === 0) {
-    reportText = `Você não tem nenhuma movimentação registrada para ${parsed.report_period_name}.`
+    reportText += `Você não tem nenhuma movimentação registrada com esses critérios.`
+  } else {
+    if (!parsed.report_type || parsed.report_type === 'income') {
+      reportText += `🔸 Receitas: R$ ${income.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`
+    }
+    if (!parsed.report_type || parsed.report_type === 'expense') {
+      reportText += `🔻 Despesas: R$ ${expense.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`
+    }
+    if (!parsed.report_type && !parsed.report_category) {
+      reportText += `💸 Saldo do Período: R$ ${balance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    } else if (!parsed.report_type && parsed.report_category) {
+      reportText += `💸 Saldo (${parsed.report_category}): R$ ${balance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    }
   }
 
   return {

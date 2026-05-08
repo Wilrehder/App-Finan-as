@@ -13,20 +13,7 @@ export async function getDailyInsights() {
   const { data: { user }, error: userError } = await supabase.auth.getUser()
   if (userError || !user) return null
 
-  // Usamos a data atual como chave de cache para forçar 1 geração por dia por usuário
-  const todayStr = new Date().toISOString().split('T')[0]
-  const cacheKey = `insights_${user.id}_${todayStr}`
-
-  // O unstable_cache armazena na Vercel e revalida a cada 24 horas (86400 segundos)
-  const getCachedInsights = unstable_cache(
-    async () => {
-      return await generateInsights(user.id)
-    },
-    [cacheKey],
-    { revalidate: 86400, tags: [cacheKey] }
-  )
-
-  return await getCachedInsights()
+  return await generateInsights(user.id)
 }
 
 async function generateInsights(userId: string) {

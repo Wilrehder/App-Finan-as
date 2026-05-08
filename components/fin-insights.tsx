@@ -16,11 +16,29 @@ export function FinInsights() {
 
   useEffect(() => {
     async function loadInsights() {
-      const data = await getDailyInsights()
-      if (data) {
-        setInsights(data)
+      try {
+        const todayStr = new Date().toISOString().split('T')[0]
+        const cacheKey = `fin_insights_${todayStr}`
+        
+        // Tenta pegar do cache local do navegador
+        const cached = localStorage.getItem(cacheKey)
+        if (cached) {
+          setInsights(JSON.parse(cached))
+          setLoading(false)
+          return
+        }
+
+        // Se não tem cache, busca do servidor
+        const data = await getDailyInsights()
+        if (data && data.length > 0) {
+          setInsights(data)
+          localStorage.setItem(cacheKey, JSON.stringify(data))
+        }
+      } catch (error) {
+        console.error("Failed to load insights:", error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     loadInsights()
   }, [])

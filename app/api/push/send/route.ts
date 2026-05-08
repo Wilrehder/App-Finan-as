@@ -59,7 +59,7 @@ async function sendAndSave(
   userId: string,
   pushSub: PushSubscription,
   tpl: NotificationTemplate
-): Promise<boolean> {
+): Promise<boolean | 'remove'> {
   // Salva no banco de notificações
   await supabase.from('notifications').insert({
     user_id: userId,

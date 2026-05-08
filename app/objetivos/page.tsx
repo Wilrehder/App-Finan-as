@@ -4,7 +4,6 @@ import { ArrowLeft, Plus } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { GoalCreateButton, GoalCreateEmptyButton } from "@/components/goal-create-button"
 import { GoalCard } from "@/components/goal-card"
-import { GoalCreateButton, GoalCreateEmptyButton } from "@/components/goal-create-button"
 
 export default async function ObjetivosPage() {
   const goals = await getGoals()

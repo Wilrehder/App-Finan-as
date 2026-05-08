@@ -4,6 +4,7 @@ import "./globals.css";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { InstallPrompt } from "@/components/install-prompt";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,8 +45,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className="dark">
+    // Sem classe dark hardcoded — o ThemeProvider aplica via JS no cliente
+    <html lang="pt-BR">
       <head>
+        {/* Script anti-flash: lê localStorage ANTES do primeiro render */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var t = localStorage.getItem('finchat_theme');
+                  if (t === 'light') {
+                    document.documentElement.classList.add('light');
+                  } else {
+                    document.documentElement.classList.add('dark');
+                  }
+                } catch(e) {
+                  document.documentElement.classList.add('dark');
+                }
+              })();
+            `,
+          }}
+        />
         {/* iOS lê diretamente essa tag — ignora o manifest para o ícone da área de trabalho */}
         <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" />
@@ -56,12 +77,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-[100dvh] overflow-hidden`}
       >
-        <NavigationProgress />
-        <main className="max-w-md mx-auto h-full relative overflow-y-auto no-scrollbar pb-[80px]">
-          <InstallPrompt />
-          {children}
-        </main>
-        <BottomNav />
+        <ThemeProvider>
+          <NavigationProgress />
+          <main className="max-w-md mx-auto h-full relative overflow-y-auto no-scrollbar pb-[80px]">
+            <InstallPrompt />
+            {children}
+          </main>
+          <BottomNav />
+        </ThemeProvider>
       </body>
     </html>
   );

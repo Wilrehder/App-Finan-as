@@ -8,6 +8,7 @@ import { EditRecurringModal } from "@/components/edit-recurring-modal"
 import { PushToggle } from "@/components/push-toggle"
 import { NotificationPreferences } from "@/components/notification-preferences"
 import { getNotificationPreferences } from "@/app/notificacoes/actions"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export const revalidate = 30
 
@@ -49,12 +50,7 @@ export default async function ConfiguracoesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Tema Escuro</span>
-              <div className="w-10 h-6 bg-primary rounded-full relative">
-                <div className="absolute right-1 top-1 w-4 h-4 bg-primary-foreground rounded-full" />
-              </div>
-            </div>
+            <ThemeToggle />
             <PushToggle />
           </CardContent>
         </Card>

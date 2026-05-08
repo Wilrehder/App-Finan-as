@@ -25,8 +25,8 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
+/* ── Tema Escuro (padrão) ───────────────────────────────────────────────── */
 :root {
-  /* Default to dark mode for FinChat to give it a premium feel */
   --background: #09090b;
   --foreground: #fafafa;
   --card: #09090b;
@@ -47,6 +47,29 @@
   --input: #27272a;
   --ring: #d4d4d8;
   --radius: 1rem;
+}
+
+/* ── Tema Claro ─────────────────────────────────────────────────────────── */
+.light {
+  --background: #f8f9fa;
+  --foreground: #09090b;
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #18181b;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #18181b;
+  --destructive: #dc2626;
+  --destructive-foreground: #fafafa;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #94a3b8;
 }
 
 body {
@@ -76,10 +99,17 @@ body:has(input:focus) .chat-main-container {
   bottom: 0 !important;
 }
 
-/* Glassmorphism utility */
+/* Glassmorphism utility — adapta ao tema */
 .glass {
   background: rgba(24, 24, 27, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.light .glass {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }

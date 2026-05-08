@@ -1,0 +1,166 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
+import { CheckCircle2, Circle, X, Plus } from "lucide-react"
+import { createPortal } from "react-dom"
+import { confirmGoalDeposit } from "@/app/chat/actions"
+import { useRouter } from "next/navigation"
+
+interface GoalDetailsModalProps {
+  goal: any;
+  onClose: () => void;
+}
+
+export function GoalDetailsModal({ goal, onClose }: GoalDetailsModalProps) {
+  const router = useRouter()
+  const [mounted, setMounted] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const handleDeposit = async (amount: number) => {
+    setLoading(true)
+    const payload = {
+      intent: 'goal_deposit' as const,
+      goal_name: goal.name,
+      amount: amount
+    }
+
+    const res = await confirmGoalDeposit(payload)
+    setLoading(false)
+
+    if (res.success) {
+      router.refresh()
+    } else {
+      alert(res.message)
+    }
+  }
+
+  const handleExtraDeposit = () => {
+    const amountStr = prompt(`Qual o valor do aporte extra para ${goal.name}?`)
+    if (!amountStr) return;
+    
+    const amount = Number(amountStr.replace(',', '.'))
+    if (isNaN(amount) || amount <= 0) {
+      alert("Valor inválido.")
+      return;
+    }
+
+    handleDeposit(amount)
+  }
+
+  if (!mounted) return null;
+
+  const isCompleted = goal.percentage >= 100;
+  const paidPeriods = Math.floor(goal.totalSaved / goal.amountPerPeriod);
+  
+  // Create an array representing the installments
+  const installments = Array.from({ length: goal.periods }, (_, i) => {
+    return {
+      index: i + 1,
+      isPaid: i < paidPeriods || isCompleted,
+      amount: goal.amountPerPeriod
+    }
+  });
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex flex-col bg-background animate-in slide-in-from-bottom-full duration-300">
+      <div className="flex justify-between items-center p-6 border-b border-border/10 shrink-0">
+        <h3 className="text-xl font-bold tracking-tight flex items-center gap-2">
+          <span className="text-2xl">{goal.icon || '🎯'}</span>
+          <span>{goal.name}</span>
+        </h3>
+        <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-secondary text-muted-foreground hover:bg-secondary/80 transition-colors">
+          <X size={20} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar pb-32">
+        
+        {/* Progress Header */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-end">
+            <div>
+              <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Guardado</span>
+              <p className="text-3xl font-bold text-primary">
+                R$ {goal.totalSaved.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                de R$ {goal.targetAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </div>
+            <span className={`text-2xl font-bold ${isCompleted ? 'text-green-500' : 'text-primary'}`}>
+              {goal.percentage.toFixed(0)}%
+            </span>
+          </div>
+          <Progress value={goal.percentage} className={`h-3 bg-secondary ${isCompleted ? '[&>div]:bg-green-500' : ''}`} />
+        </div>
+
+        {/* Action Button */}
+        {!isCompleted && (
+          <Button onClick={handleExtraDeposit} variant="secondary" className="w-full rounded-2xl h-14 text-primary font-semibold flex items-center gap-2 hover:bg-secondary/80">
+            <Plus size={20} />
+            Adicionar Aporte Extra
+          </Button>
+        )}
+
+        {/* Installments List */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Parcelas do Plano</h4>
+          <div className="space-y-2">
+            {installments.map((inst, idx) => (
+              <div 
+                key={idx}
+                className={`flex items-center justify-between p-4 rounded-2xl border ${inst.isPaid ? 'bg-green-500/10 border-green-500/20' : 'bg-secondary/50 border-transparent'} transition-colors`}
+              >
+                <div className="flex items-center gap-3">
+                  {inst.isPaid ? (
+                    <CheckCircle2 className="text-green-500" size={24} />
+                  ) : (
+                    <button 
+                      onClick={() => handleDeposit(inst.amount)} 
+                      disabled={loading}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Circle size={24} />
+                    </button>
+                  )}
+                  <div className="flex flex-col">
+                    <span className={`font-semibold ${inst.isPaid ? 'text-green-500' : 'text-foreground'}`}>
+                      Parcela {inst.index}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {inst.isPaid ? 'Pago' : 'Pendente'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <span className={`font-bold ${inst.isPaid ? 'text-green-500' : 'text-foreground'}`}>
+                    R$ {inst.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  {!inst.isPaid && (
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleDeposit(inst.amount)}
+                      disabled={loading}
+                      className="rounded-full bg-primary hover:bg-primary/90"
+                    >
+                      Pagar
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>,
+    document.body
+  )
+}

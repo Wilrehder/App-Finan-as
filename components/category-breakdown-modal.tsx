@@ -80,12 +80,12 @@ export function CategoryBreakdownModal({ transactions, onClose }: CategoryBreakd
     <div className="fixed inset-0 z-[9999] bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-secondary border border-white/10 w-full sm:max-w-md h-[85vh] sm:h-[80vh] rounded-t-3xl sm:rounded-3xl flex flex-col shadow-2xl animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10 duration-300">
         
-        <div className="flex items-center justify-between p-5 border-b border-white/10">
+        <div className="flex items-center justify-between p-5 border-b border-border">
           <div className="flex items-center gap-2">
-            <PieChart className="text-indigo-400 w-5 h-5" />
-            <h2 className="font-semibold text-lg">Visão por Categoria</h2>
+            <PieChart className="text-indigo-500 w-5 h-5" />
+            <h2 className="font-semibold text-lg text-foreground">Visão por Categoria</h2>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-secondary hover:bg-secondary/80 transition">
             <X size={18} className="text-muted-foreground" />
           </button>
         </div>
@@ -95,7 +95,7 @@ export function CategoryBreakdownModal({ transactions, onClose }: CategoryBreakd
           {sortedCategories.map(([category, data]) => (
             <div 
               key={category} 
-              className={`bg-background/40 rounded-2xl p-4 border transition-all duration-200 ${dragOverCategory === category ? 'border-indigo-500 bg-indigo-500/10 scale-[1.02]' : 'border-white/5'}`}
+              className={`bg-card rounded-2xl p-4 border transition-all duration-200 shadow-sm ${dragOverCategory === category ? 'border-indigo-500 bg-indigo-500/10 scale-[1.02]' : 'border-border'}`}
               onDragOver={(e) => {
                 e.preventDefault()
                 setDragOverCategory(category)
@@ -114,7 +114,7 @@ export function CategoryBreakdownModal({ transactions, onClose }: CategoryBreakd
               }}
             >
               <div className="flex justify-between items-center mb-3">
-                <h3 className="font-semibold text-white/90 flex items-center gap-2">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
                   {category}
                 </h3>
@@ -123,14 +123,14 @@ export function CategoryBreakdownModal({ transactions, onClose }: CategoryBreakd
               
               <div className="space-y-2">
                 {data.items.length === 0 ? (
-                  <div className="text-xs text-muted-foreground/50 italic py-2 text-center border border-dashed border-white/10 rounded-xl">
+                  <div className="text-xs text-muted-foreground/50 italic py-2 text-center border border-dashed border-border rounded-xl">
                     Arraste gastos para cá
                   </div>
                 ) : (
                   data.items.map(tx => (
                     <div 
                       key={tx.id} 
-                      className={`flex flex-col gap-2 p-3 bg-secondary/50 rounded-xl cursor-grab active:cursor-grabbing border border-transparent hover:border-white/10 transition ${updating ? 'opacity-50 pointer-events-none' : ''}`}
+                      className={`flex flex-col gap-2 p-3 bg-secondary/30 rounded-xl cursor-grab active:cursor-grabbing border border-transparent hover:border-border transition ${updating ? 'opacity-50 pointer-events-none' : ''}`}
                       draggable={!updating}
                       onDragStart={(e) => {
                         e.dataTransfer.setData('text/plain', tx.id)
@@ -154,14 +154,14 @@ export function CategoryBreakdownModal({ transactions, onClose }: CategoryBreakd
                       
                       {/* Área de Ação (Mudar Categoria) - Fallback para clique */}
                       {editingTxId === tx.id ? (
-                        <div className="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-2 pl-5">
+                        <div className="mt-2 pt-2 border-t border-border flex flex-wrap gap-2 pl-5">
                           <p className="text-xs w-full text-muted-foreground mb-1">Mover para:</p>
                           {PREDEFINED_CATEGORIES.filter(c => c !== tx.category).map(cat => (
                             <button
                               key={cat}
                               disabled={updating}
                               onClick={() => handleCategoryChange(tx.id, cat)}
-                              className="text-xs px-2 py-1 bg-white/10 hover:bg-indigo-500/20 hover:text-indigo-300 rounded-md transition disabled:opacity-50"
+                              className="text-xs px-2 py-1 bg-secondary hover:bg-indigo-500/10 hover:text-indigo-500 text-foreground rounded-md transition disabled:opacity-50"
                             >
                               {cat}
                             </button>

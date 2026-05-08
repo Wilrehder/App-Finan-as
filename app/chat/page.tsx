@@ -732,13 +732,17 @@ export default function ChatPage() {
 
       {/* ─── Modal de edição de valor/data ─── */}
       {editModal && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setEditModal(null)}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setEditModal(null)}>
           <div
-            className="w-full max-w-md bg-background rounded-t-3xl p-6 pb-10 space-y-5 animate-in slide-in-from-bottom-4 duration-300"
+            className="w-full max-w-md bg-background rounded-3xl p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}
           >
-            <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-2" />
-            <h3 className="text-lg font-bold text-center">Editar Lançamento</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-xl font-bold">Editar Lançamento</h3>
+              <button onClick={() => setEditModal(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-secondary text-muted-foreground hover:bg-secondary/80">
+                ✕
+              </button>
+            </div>
 
             {/* Campo: Valor */}
             <div className="space-y-1.5">

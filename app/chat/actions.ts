@@ -312,10 +312,21 @@ export async function confirmReminder(parsed: ParsedIntent) {
   if (process.env.QSTASH_TOKEN) {
     try {
       const { Client } = require("@upstash/qstash");
-      const qstash = new Client({ token: process.env.QSTASH_TOKEN });
-      // Precisa ter a URL base de producao ou ngrok para o QStash conseguir chamar de volta
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-      const dest = `${baseUrl}/api/push/qstash`;
+      const qstash = new Client({ 
+        token: process.env.QSTASH_TOKEN,
+        baseUrl: process.env.QSTASH_URL // Garante que usa a URL EU se for o caso
+      });
+      
+      // Tenta pegar a URL de várias formas seguras
+      let appUrl = process.env.NEXT_PUBLIC_APP_URL;
+      if (!appUrl && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+        appUrl = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+      }
+      if (!appUrl) {
+        appUrl = "https://app-finan-as.vercel.app"; // Fallback absoluto para o projeto atual
+      }
+      
+      const dest = `${appUrl}/api/push/qstash`;
 
       const { data: inserted } = await supabase
         .from('reminders')

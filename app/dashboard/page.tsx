@@ -13,12 +13,14 @@ import Link from "next/link"
 
 export const revalidate = 30 // revalida a cada 30 segundos
 
-export default async function DashboardPage(props: { searchParams: Promise<{ month?: string; year?: string; type?: 'all'|'income'|'expense' }> }) {
+export default async function DashboardPage(props: { searchParams: Promise<{ month?: string; year?: string; type?: 'all'|'income'|'expense'; date?: string; period?: string }> }) {
   const searchParams = await props.searchParams
   
   const filters = {
     month: searchParams.month ? parseInt(searchParams.month) : undefined,
     year: searchParams.year ? parseInt(searchParams.year) : undefined,
+    date: searchParams.date,
+    period: searchParams.period as any,
     type: searchParams.type
   }
 
@@ -70,22 +72,40 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
             Total Gasto
           </CardDescription>
           <CardTitle className="text-4xl">R$ {data.expense.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</CardTitle>
+          {data.changes && (
+            <div className={`flex items-center gap-1 text-sm mt-1 ${data.changes.expense > 0 ? 'text-red-400' : data.changes.expense < 0 ? 'text-green-400' : 'text-primary-foreground/50'}`}>
+              {data.changes.expense > 0 ? <ArrowUpIcon size={14} /> : data.changes.expense < 0 ? <ArrowDownIcon size={14} /> : null}
+              <span>{Math.abs(data.changes.expense)}% vs anterior</span>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <div className="flex justify-between mt-4 pt-4 border-t border-primary-foreground/10">
             <div className="flex flex-col">
               <span className="text-xs text-primary-foreground/70 flex items-center gap-1">
-                <ArrowUpIcon size={12} className="text-green-400" /> Receitas
+                Receitas
               </span>
               <span className="font-semibold mt-1">R$ {data.income.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              {data.changes && (
+                <div className={`flex items-center gap-1 text-xs mt-1 ${data.changes.income > 0 ? 'text-green-400' : data.changes.income < 0 ? 'text-red-400' : 'text-primary-foreground/50'}`}>
+                  {data.changes.income > 0 ? <ArrowUpIcon size={10} /> : data.changes.income < 0 ? <ArrowDownIcon size={10} /> : null}
+                  <span>{Math.abs(data.changes.income)}%</span>
+                </div>
+              )}
             </div>
             <div className="flex flex-col items-end">
               <span className="text-xs text-primary-foreground/70">
-                Resultado do Mês
+                Resultado do {data.periodLabel === 'day' ? 'Dia' : data.periodLabel === 'week' ? 'Período' : data.periodLabel === 'year' ? 'Ano' : 'Mês'}
               </span>
               <span className={`font-semibold mt-1 ${data.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 R$ {data.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
+              {data.changes && (
+                <div className={`flex items-center gap-1 text-xs mt-1 ${data.changes.balance > 0 ? 'text-green-400' : data.changes.balance < 0 ? 'text-red-400' : 'text-primary-foreground/50'}`}>
+                  {data.changes.balance > 0 ? <ArrowUpIcon size={10} /> : data.changes.balance < 0 ? <ArrowDownIcon size={10} /> : null}
+                  <span>{Math.abs(data.changes.balance)}%</span>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>

@@ -137,9 +137,9 @@ export async function confirmFixedTransaction(parsed: ParsedIntent) {
     .from('recurring_transactions')
     .insert({
       user_id: user.id,
-      type: parsed.type,
+      type: parsed.type || 'expense',
       amount: parsed.amount,
-      category: parsed.category,
+      category: parsed.category || 'Outros',
       description: parsed.description,
       day_of_month: parsed.day_of_month,
       is_business_day: parsed.is_business_day || false,

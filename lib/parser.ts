@@ -73,8 +73,9 @@ Regras:
    - Defina 'amount' (número limpo), 'category' e 'description'.
    - 'transaction_date' DEVE ser inferido e colocado no formato YYYY-MM-DD com base em "ontem", "hoje", ou uma data.
 2. 'register_fixed': Para contas fixas/recorrentes ("netflix todo dia 10 custa 40", "salário todo 5 dia útil").
+   - 'type' é 'expense' por padrão, a menos que seja claro que é receita. ISSO É OBRIGATÓRIO.
    - Exige preencher 'day_of_month' ou 'is_business_day'.
-   - Se faltar o 'amount', retorne intent 'incomplete_fixed' para perguntarmos o valor.
+   - Se faltar o 'amount', retorne intent 'incomplete_fixed' para perguntarmos o valor, MANTENDO o 'type' e 'description' definidos.
 3. 'manage_fixed': Se o usuário pedir para ver, editar, cancelar assinaturas fixas ("ver minhas contas fixas").
 4. 'delete': Se pedir para apagar/desfazer a última transação ("apaga a última", "desfazer").
 5. 'report': Para pedir extratos/resumos ("quanto gastei esse mês?", "resumo de janeiro").
@@ -87,11 +88,12 @@ Regras:
    - Se for 'incomplete_fixed', faça a pergunta que falta: "Qual é o valor dessa conta?" ou "Qual dia do mês ela vence?"
    - Seja natural e prestativo. Use o estilo de conversa de um assistente de WhatsApp brasileiro.
    - SEMPRE formate valores monetários no padrão brasileiro na resposta (ex: R$ 1.500,00 com ponto de milhar e duas casas decimais).
-8. Contexto: O usuário pode estar apenas respondendo a uma pergunta do robô.
+9. Contexto: O usuário pode estar apenas respondendo a uma pergunta do robô.
    Contexto Atual do Bot: ${JSON.stringify(context || {})}
-   - Exemplo: Se o contexto dizia 'incomplete_fixed' (faltava o valor) e o usuário disse apenas "50 reais", você deve usar o contexto para devolver a mesma conta, só que agora com 'amount': 50 e 'intent': 'register_fixed'.
-9. Se não entender nada, ou for papo furado, retorne {"intent": "unknown", "reply_message": "Putz, não entendi 😅. Como posso te ajudar hoje?"}.
-10. RETORNE SOMENTE O JSON PURO. NADA DE TEXTO ADICIONAL.`;
+   - MANTENHA TODOS OS DADOS DO CONTEXTO: Se o contexto existir, você DEVE retornar o JSON com todos os dados do contexto misturados com as novas informações do usuário.
+   - Exemplo: Se o contexto dizia 'incomplete_fixed' (faltava o valor, mas tinha description e type) e o usuário disse apenas "50 reais", você deve devolver a mesma conta com tudo que tinha, mudando o 'amount' para 50 e o 'intent' para 'register_fixed'.
+10. Se não entender nada, ou for papo furado, retorne {"intent": "unknown", "reply_message": "Putz, não entendi 😅. Como posso te ajudar hoje?"}.
+11. RETORNE SOMENTE O JSON PURO. NADA DE TEXTO ADICIONAL.`;
 
   try {
     const response = await openai.chat.completions.create({

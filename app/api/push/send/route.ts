@@ -127,7 +127,19 @@ export async function GET(req: NextRequest) {
     ?? req.nextUrl.searchParams.get('secret');
 
   if (secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'N�  // ─── 1. Coleta todos os dados necessários ───────────────────────────────────
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  }
+
+  const supabase = await createClient();
+  const br = getBRDate();
+  const tomorrow = new Date(br.date.getTime() + 24 * 60 * 60 * 1000);
+  const tomorrowBR = {
+    day: tomorrow.getDate(),
+    month: tomorrow.getMonth(),
+    year: tomorrow.getFullYear()
+  };
+
+  // ─── 1. Coleta todos os dados necessários ───────────────────────────────────
   const [
     { data: allSubscriptions },
     { data: allRecurring },
@@ -142,9 +154,9 @@ export async function GET(req: NextRequest) {
 
   // Mapa de usuários -> dados
   const userIds = Array.from(new Set([
-    ...(allPrefs ?? []).map(p => p.user_id),
-    ...(allSubscriptions ?? []).map(s => s.user_id),
-    ...(allReminders ?? []).map(r => r.user_id)
+    ...(allPrefs ?? []).map((p: any) => p.user_id),
+    ...(allSubscriptions ?? []).map((s: any) => s.user_id),
+    ...(allReminders ?? []).map((r: any) => r.user_id)
   ]));
 
   const prefsMap: Record<string, any> = {};
@@ -183,7 +195,7 @@ export async function GET(req: NextRequest) {
     let hasImportantToday = false;
 
     // A. Despesa/Receita Hoje
-    const todayItems = userRecurring.filter(r => getRecurringDay(r, br.year, br.month) === br.day);
+    const todayItems = userRecurring.filter((r: any) => getRecurringDay(r, br.year, br.month) === br.day);
     for (const item of todayItems) {
       const type = item.type === 'expense' ? 'FIXED_EXPENSE_TODAY' : 'FIXED_INCOME_TODAY';
       const prefKey = item.type === 'expense' ? 'fixed_expenses' : 'fixed_income';
@@ -202,7 +214,7 @@ export async function GET(req: NextRequest) {
 
     // B. Despesa Amanhã
     if (prefs.fixed_expenses !== false) {
-      const tomorrowItems = userRecurring.filter(r => r.type === 'expense' && getRecurringDay(r, tomorrow.year, tomorrow.month) === tomorrow.day);
+      const tomorrowItems = userRecurring.filter((r: any) => r.type === 'expense' && getRecurringDay(r, tomorrowBR.year, tomorrowBR.month) === tomorrowBR.day);
       for (const item of tomorrowItems) {
         const alreadySent = await wasAlreadySentToday(supabase, userId, 'FIXED_EXPENSE_TOMORROW', br.isoDate);
         if (!alreadySent) {
@@ -305,30 +317,4 @@ export async function GET(req: NextRequest) {
     pushes_attempted: totalPushes,
     removed_subs: failedEndpoints.length 
   });
-}
-    if (shouldSend) {
-        const res = await sendAndSave(supabase, userId, pushSub, {
-          title: 'Lembrete 🔔',
-          body: rem.title,
-          type: 'CUSTOM_REMINDER',
-          url: '/notificacoes',
-          icon: '/icon-192x192.png'
-        });
-
-        if (res === true) {
-          totalSent++;
-          await supabase.from('reminders').update({ last_sent_at: br.isoDate }).eq('id', rem.id);
-        } else if (res === 'remove') {
-          failedEndpoints.push(sub.endpoint);
-        }
-      }
-    }
-  }
-
-  // Remove subscriptions inválidas (410/404)
-  if (failedEndpoints.length > 0) {
-    await supabase.from('push_subscriptions').delete().in('endpoint', failedEndpoints);
-  }
-
-  return NextResponse.json({ success: true, sent: totalSent, removed: failedEndpoints.length });
 }

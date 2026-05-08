@@ -9,17 +9,17 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data.json();
   } catch {
-    data = { title: "Prisma", body: event.data.text() };
+    data = { title: "Finchat", body: event.data.text() };
   }
 
-  const { title = "Prisma 💰", body = "", icon = "/icon-192x192.png", badge = "/icon-192x192.png", url = "/dashboard" } = data;
+  const { title = "Finchat 💬", body = "", icon = "/icon-192x192.png", badge = "/icon-192x192.png", url = "/dashboard" } = data;
 
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
       icon,
       badge,
-      tag: "prisma-notification",
+      tag: "finchat-notification",
       renotify: true,
       data: { url },
       vibrate: [100, 50, 100],

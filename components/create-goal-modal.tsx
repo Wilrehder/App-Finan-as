@@ -22,6 +22,7 @@ export function CreateGoalModal({ onClose }: CreateGoalModalProps) {
   const [targetAmount, setTargetAmount] = useState("")
   const [deadline, setDeadline] = useState("")
   const [frequency, setFrequency] = useState<'daily'|'weekly'|'monthly'>("monthly")
+  const [paymentDay, setPaymentDay] = useState("10")
   
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState<{ periods: number, amountPerPeriod: number } | null>(null)
@@ -66,6 +67,11 @@ export function CreateGoalModal({ onClose }: CreateGoalModalProps) {
       return
     }
 
+    if (frequency === 'monthly' && (!paymentDay || Number(paymentDay) < 1 || Number(paymentDay) > 31)) {
+      alert("Por favor, informe um dia de pagamento válido (1 a 31).")
+      return
+    }
+
     setLoading(true)
     const payload = {
       intent: 'create_goal' as const,
@@ -73,6 +79,7 @@ export function CreateGoalModal({ onClose }: CreateGoalModalProps) {
       goal_target_amount: Number(targetAmount),
       goal_deadline: deadline,
       goal_frequency: frequency,
+      goal_payment_day: frequency === 'monthly' ? Number(paymentDay) : undefined,
       goal_icon: icon
     }
 
@@ -156,6 +163,21 @@ export function CreateGoalModal({ onClose }: CreateGoalModalProps) {
               />
             </div>
           </div>
+
+          {frequency === 'monthly' && (
+            <div className="space-y-1.5 animate-in fade-in duration-200">
+              <label className="text-sm font-semibold text-muted-foreground">Dia do Pagamento</label>
+              <Input
+                type="number"
+                min="1"
+                max="31"
+                placeholder="Ex: 10"
+                value={paymentDay}
+                onChange={e => setPaymentDay(e.target.value)}
+                className="h-14 rounded-2xl bg-secondary border-none px-4 text-base"
+              />
+            </div>
+          )}
         </div>
 
         {/* Prévia Automática */}

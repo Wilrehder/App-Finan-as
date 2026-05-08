@@ -8,9 +8,10 @@ interface GoalPreviewCardProps {
 export function GoalPreviewCard({ payload }: GoalPreviewCardProps) {
   if (!payload || payload.intent !== 'create_goal') return null;
 
-  const { goal_name, goal_target_amount, goal_deadline, goal_frequency, goal_icon } = payload;
+  const { goal_name, goal_target_amount, goal_deadline, goal_frequency, goal_payment_day, goal_icon } = payload;
   
   if (!goal_target_amount || !goal_deadline || !goal_frequency) return null;
+  if (goal_frequency === 'monthly' && !goal_payment_day) return null;
 
   // Calculate periods
   const today = new Date();
@@ -32,7 +33,7 @@ export function GoalPreviewCard({ payload }: GoalPreviewCardProps) {
   } else if (goal_frequency === 'monthly') {
     const diffMonths = (deadline.getFullYear() - today.getFullYear()) * 12 + (deadline.getMonth() - today.getMonth());
     periods = diffMonths > 0 ? diffMonths : 1;
-    periodLabel = 'por mês';
+    periodLabel = `por mês (todo dia ${goal_payment_day})`;
   }
 
   const amountPerPeriod = Number(goal_target_amount) / periods;

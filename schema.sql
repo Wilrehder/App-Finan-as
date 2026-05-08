@@ -49,6 +49,9 @@ CREATE TABLE IF NOT EXISTS public.goal_deposits (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- UPDATE 08/05/2026: Adicionando data de pagamento para as parcelas do objetivo
+ALTER TABLE public.goals ADD COLUMN payment_day INTEGER;
+
 ALTER TABLE public.goal_deposits ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage their own goal deposits" ON public.goal_deposits FOR ALL USING (
     auth.uid() = (SELECT user_id FROM public.goals WHERE id = goal_id)

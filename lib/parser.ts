@@ -34,6 +34,7 @@ export interface ParsedIntent {
   goal_target_amount?: number;
   goal_deadline?: string; // YYYY-MM-DD
   goal_frequency?: 'daily' | 'weekly' | 'monthly';
+  goal_payment_day?: number; // 1-31
   goal_icon?: string;
 }
 
@@ -79,6 +80,7 @@ O JSON deve seguir a interface TypeScript:
   "goal_target_amount": number, // OPCIONAL
   "goal_deadline": "YYYY-MM-DD", // OPCIONAL
   "goal_frequency": "daily" | "weekly" | "monthly", // OPCIONAL
+  "goal_payment_day": number, // OPCIONAL (dia do vencimento da parcela)
   "goal_icon": "string", // OPCIONAL (um emoji)
   "reply_message": "string" // OBRIGATÓRIO: Crie uma mensagem amigável, humanizada (com emojis curtos) confirmando o que você entendeu e pedindo confirmação.
 }
@@ -102,10 +104,11 @@ Regras:
 6. 'reminder': Para criar lembretes/alarmes ("me lembre de pagar luz às 10:30 amanhã").
    - Preencha 'remind_at' no formato 24h HH:MM, 'frequency' ('once', 'daily', etc), e a 'description'.
    - Se for 'once', preencha 'specific_date' (YYYY-MM-DD).
-7. 'create_goal': Para criar metas financeiras/objetivos ("Quero juntar dinheiro para uma viagem", "Criar meta de 20 mil até dezembro").
+7. 'create_goal': Para criar metas financeiras/objetivos ("Quero juntar dinheiro para uma viagem", "Criar meta de 20 mil até dezembro todo dia 10").
    - Preencha 'goal_name', 'goal_target_amount', 'goal_deadline' (YYYY-MM-DD) e 'goal_frequency' ('daily', 'weekly' ou 'monthly').
+   - Se for 'monthly' e houver dia específico ("todo dia 10"), preencha 'goal_payment_day'.
    - Escolha um emoji coerente com o objetivo e preencha 'goal_icon'.
-   - Se faltar algum dado essencial (nome, valor desejado, data limite ou frequência), retorne a intent 'create_goal' e use 'reply_message' para perguntar EXATAMENTE o que falta.
+   - Se faltar algum dado essencial (nome, valor desejado, data limite, frequência ou dia de pagamento se for mensal), retorne a intent 'create_goal' e use 'reply_message' para perguntar o que falta.
 8. 'goal_deposit': Para registrar dinheiro guardado ou pagamento de parcelas para uma meta ("Guardei 300 reais pro setup", "Paguei a parcela da viagem").
    - Preencha 'amount' (o valor da parcela/aporte) e 'goal_name' (o nome do objetivo para vincular).
    - ATENÇÃO: Se o usuário disser "paguei a parcela", NÃO é 'register', É 'goal_deposit'.
@@ -113,7 +116,7 @@ Regras:
    - Preencha 'goal_name'.
 10. 'reply_message': Você DEVE formular uma resposta amigável e conversacional como se fosse o Finchat. 
    - Se for 'register', diga algo como: "Pode deixar! 📝 Vou anotar aqui a sua despesa de R$ 50,00 com Alimentação pra hoje. Posso confirmar?"
-   - Se for 'create_goal' ou 'goal_deposit' faltando informações essenciais, faça a pergunta que falta: "Qual é o valor que você pagou para essa meta?" ou "Até quando você planeja concluir?"
+   - Se for 'create_goal' ou 'goal_deposit' faltando informações essenciais, faça a pergunta que falta: "Qual é o valor que você pagou para essa meta?", "Até quando você planeja concluir?" ou "Em que dia do mês você quer pagar a parcela?"
    - Seja natural e prestativo. Use o estilo de conversa de um assistente de WhatsApp brasileiro.
    - SEMPRE formate valores monetários no padrão brasileiro na resposta (ex: R$ 1.500,00 com ponto de milhar e duas casas decimais).
 9. Contexto: O usuário pode estar apenas respondendo a uma pergunta do robô.

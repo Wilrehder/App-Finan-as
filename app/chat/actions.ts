@@ -50,7 +50,8 @@ export async function parseUserIntent(message: string, context?: ParsedIntent) {
   }
 
   if (parsed.intent === 'create_goal') {
-    if (!parsed.goal_name || !parsed.goal_target_amount || !parsed.goal_deadline || !parsed.goal_frequency) {
+    const isMissingMonthlyDay = parsed.goal_frequency === 'monthly' && !parsed.goal_payment_day;
+    if (!parsed.goal_name || !parsed.goal_target_amount || !parsed.goal_deadline || !parsed.goal_frequency || isMissingMonthlyDay) {
       return {
         success: true,
         message: parsed.reply_message || "Preciso de mais algumas informações para criar seu objetivo.",
@@ -453,6 +454,7 @@ export async function confirmGoal(parsed: ParsedIntent) {
       target_amount: parsed.goal_target_amount,
       deadline: parsed.goal_deadline,
       frequency: parsed.goal_frequency,
+      payment_day: parsed.goal_payment_day,
       icon: parsed.goal_icon || '🎯'
     })
 

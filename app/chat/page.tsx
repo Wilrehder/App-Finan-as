@@ -704,7 +704,7 @@ export default function ChatPage() {
 
       {/* Custom Clear Confirmation Modal */}
       {showClearConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-background border border-white/10 p-6 rounded-3xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-200">
             <h3 className="text-lg font-bold mb-2">Limpar Histórico?</h3>
             <p className="text-sm text-muted-foreground mb-6">
@@ -732,7 +732,7 @@ export default function ChatPage() {
 
       {/* ─── Modal de edição de valor/data ─── */}
       {editModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setEditModal(null)}>
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setEditModal(null)}>
           <div
             className="w-full max-w-md bg-background rounded-t-3xl p-6 pb-10 space-y-5 animate-in slide-in-from-bottom-4 duration-300"
             onClick={e => e.stopPropagation()}

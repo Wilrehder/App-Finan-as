@@ -120,8 +120,8 @@ export function DashboardFilters({
             }}
             className={`flex-1 h-8 rounded-xl text-xs font-medium transition-colors ${
               period === opt.value
-                ? "bg-secondary text-primary-foreground border border-white/10"
-                : "bg-transparent text-muted-foreground hover:bg-secondary/50 border border-transparent"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/50 border border-transparent"
             }`}
           >
             {opt.label}

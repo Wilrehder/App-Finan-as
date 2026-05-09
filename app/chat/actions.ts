@@ -313,7 +313,6 @@ export async function confirmReminder(parsed: ParsedIntent) {
       const { Client } = require("@upstash/qstash");
       const qstash = new Client({ 
         token: process.env.QSTASH_TOKEN,
-        baseUrl: process.env.QSTASH_URL // Garante que usa a URL EU se for o caso
       });
       
       // Tenta pegar a URL de várias formas seguras

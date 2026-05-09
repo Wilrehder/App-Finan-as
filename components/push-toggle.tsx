@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Bell, BellOff, Loader2 } from "lucide-react"
 
 type Status = "loading" | "unsupported" | "denied" | "off" | "on" | "error"
@@ -12,21 +12,13 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
 }
 
-// Tenta pegar o registro do SW de qualquer estado (instalando, esperando ou ativo)
-// Muito mais confiável do que .ready que exige SW totalmente ativado
 async function getSWRegistration(): Promise<ServiceWorkerRegistration> {
-  // Tenta primeiro um registro já existente (não exige ativação completa)
   const existing = await navigator.serviceWorker.getRegistration("/")
   if (existing) return existing
-
-  // Fallback: registra manualmente e aguarda com timeout
   return Promise.race([
     navigator.serviceWorker.register("/sw.js", { scope: "/" }),
     new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new Error("Service Worker indisponível. Reabra o app.")),
-        6000
-      )
+      setTimeout(() => reject(new Error("Service Worker indisponível. Reabra o app.")), 6000)
     ),
   ])
 }
@@ -36,41 +28,41 @@ export function PushToggle() {
   const [working, setWorking] = useState(false)
   const [errorMsg, setErrorMsg] = useState("")
 
-  useEffect(() => {
+  // Verifica o estado atual da subscription
+  const checkStatus = useCallback(async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       setStatus("unsupported")
       return
     }
-
-    const perm = Notification.permission
-    if (perm === "denied") {
+    if (Notification.permission === "denied") {
       setStatus("denied")
       return
     }
-
-    // Timeout de segurança: se o SW demorar mais de 4s para ativar,
-    // mostra o toggle como "off" ao invés de ficar girando para sempre
-    const timeout = setTimeout(() => {
+    try {
+      const reg = await navigator.serviceWorker.getRegistration("/")
+      if (!reg) { setStatus("off"); return }
+      const sub = await reg.pushManager.getSubscription()
+      setStatus(sub ? "on" : "off")
+    } catch {
       setStatus("off")
-    }, 4000)
-
-    navigator.serviceWorker
-      .getRegistration("/")
-      .then((reg) => {
-        clearTimeout(timeout)
-        if (!reg) { setStatus("off"); return }
-        return reg.pushManager.getSubscription()
-      })
-      .then((sub) => {
-        if (sub !== undefined) setStatus(sub ? "on" : "off")
-      })
-      .catch(() => {
-        clearTimeout(timeout)
-        setStatus("off")
-      })
-
-    return () => clearTimeout(timeout)
+    }
   }, [])
+
+  useEffect(() => {
+    // Timeout de segurança
+    const timeout = setTimeout(() => setStatus("off"), 5000)
+    checkStatus().finally(() => clearTimeout(timeout))
+    return () => clearTimeout(timeout)
+  }, [checkStatus])
+
+  // Re-verifica quando o usuário volta para a aba/app
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") checkStatus()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => document.removeEventListener("visibilitychange", onVisible)
+  }, [checkStatus])
 
   const enable = async () => {
     setWorking(true)
@@ -82,28 +74,33 @@ export function PushToggle() {
         return
       }
 
+      if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+        setErrorMsg("Configuração de notificações incompleta. Contate o suporte.")
+        return
+      }
+
       const reg = await getSWRegistration()
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(
-          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-        ),
+        applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
       })
 
-      const res = await fetch("/api/push/subscribe", {
+      // Atualiza o toggle IMEDIATAMENTE após o browser conceder — não espera a API
+      setStatus("on")
+
+      // Salva no banco em background (não bloqueia a UI)
+      fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(sub.toJSON()),
+      }).catch(() => {
+        // Falha silenciosa — o push está ativo no browser, DB é secundário
+        console.warn("Falha ao salvar subscription no banco")
       })
-
-      if (res.ok) {
-        setStatus("on")
-      } else {
-        setErrorMsg("Erro ao salvar. Tente novamente.")
-      }
     } catch (err: any) {
       console.error("Erro ao ativar push:", err)
       setErrorMsg("Recarregue o app e tente novamente.")
+      setStatus("off")
     } finally {
       setWorking(false)
     }
@@ -116,11 +113,11 @@ export function PushToggle() {
       const reg = await getSWRegistration()
       const sub = await reg.pushManager.getSubscription()
       if (sub) {
-        await fetch("/api/push/unsubscribe", {
+        fetch("/api/push/unsubscribe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: sub.endpoint }),
-        })
+        }).catch(() => {})
         await sub.unsubscribe()
       }
       setStatus("off")
@@ -131,18 +128,6 @@ export function PushToggle() {
     }
   }
 
-  const testNotification = async () => {
-    if (Notification.permission === "granted") {
-      const reg = await getSWRegistration()
-      reg.showNotification("Finchat 💰", {
-        body: "Notificações estão funcionando! 🎉",
-        icon: "/icon-192x192.png",
-        badge: "/icon-192x192.png",
-        vibrate: [100, 50, 100],
-      } as NotificationOptions)
-    }
-  }
-
   if (status === "loading") {
     return (
       <div className="flex items-center justify-between py-1">
@@ -150,17 +135,6 @@ export function PushToggle() {
           <Bell size={16} /> Notificações
         </span>
         <Loader2 size={16} className="animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-
-  if (status === "error") {
-    return (
-      <div className="flex flex-col gap-1 py-1">
-        <span className="text-sm font-medium flex items-center gap-2">
-          <Bell size={16} /> Notificações
-        </span>
-        <p className="text-xs text-red-400">{errorMsg || "Erro inesperado. Recarregue o app."}</p>
       </div>
     )
   }
@@ -185,14 +159,14 @@ export function PushToggle() {
           </span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Acesse as configurações do navegador para permitir notificações.
+          Acesse as configurações do seu celular para permitir notificações do Finchat.
         </p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium flex items-center gap-2">
           <Bell size={16} className={status === "on" ? "text-primary" : ""} />
@@ -221,22 +195,14 @@ export function PushToggle() {
         </button>
       </div>
 
-      {errorMsg && status !== "on" && (
+      {errorMsg && (
         <p className="text-xs text-red-400">{errorMsg}</p>
       )}
 
       {status === "on" && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Você receberá avisos de contas fixas que vencem hoje ou amanhã.
-          </p>
-          <button
-            onClick={testNotification}
-            className="text-xs text-primary font-medium hover:underline ml-2 shrink-0"
-          >
-            Testar
-          </button>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Você receberá avisos de contas fixas, lembretes e resumos financeiros.
+        </p>
       )}
     </div>
   )

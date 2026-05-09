@@ -23,6 +23,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Dados de subscription inválidos" }, { status: 400 })
     }
 
+    // Apaga todos os endereços antigos do usuário antes de salvar o novo.
+    // Isso evita acúmulo de subscriptions duplicadas ao ativar/desativar o toggle.
+    await supabase
+      .from("push_subscriptions")
+      .delete()
+      .eq("user_id", user.id)
+      .neq("endpoint", endpoint) // mantém só se for exatamente o mesmo endpoint
+
     // Upsert — se já existe o endpoint, atualiza. Se não, cria.
     const { error } = await supabase
       .from("push_subscriptions")

@@ -338,7 +338,10 @@ export async function confirmReminder(parsed: ParsedIntent) {
       if (inserted) {
         if (parsed.frequency === 'once' && parsed.specific_date) {
           const [y, m, d] = parsed.specific_date.split('-');
-          const [hr, min, sec] = parsed.remind_at!.split(':');
+          const parts = parsed.remind_at!.split(':');
+          const hr = parts[0];
+          const min = parts[1];
+          const sec = parts[2] ?? '00'; // time inputs retornam HH:MM sem segundos
           const dateString = `${y}-${m}-${d}T${hr}:${min}:${sec}-03:00`;
           const timestamp = Math.floor(new Date(dateString).getTime() / 1000);
 

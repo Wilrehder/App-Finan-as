@@ -39,6 +39,9 @@ export async function getGoals() {
     }
 
     const remainingAmount = targetAmount - totalSaved;
+    // originalAmountPerPeriod is fixed and should be used to display installments and calculate paid ones
+    const originalAmountPerPeriod = targetAmount / periods;
+    // amountPerPeriod is dynamic, useful for "próximo aporte sugerido se você quiser terminar a tempo"
     const amountPerPeriod = remainingAmount > 0 ? remainingAmount / periods : 0;
     const percentage = Math.min((totalSaved / targetAmount) * 100, 100);
 
@@ -53,7 +56,8 @@ export async function getGoals() {
       percentage,
       remainingAmount,
       periods,
-      amountPerPeriod
+      amountPerPeriod,
+      originalAmountPerPeriod
     }
   })
 }

@@ -5,11 +5,6 @@ import { createClient } from "@supabase/supabase-js";
 // Rota de diagnóstico. Chame com:
 // /api/push/test?secret=prisma_cron_2026_secure
 export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get("secret");
-  if (secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   // Verifica VAPID
   const vapidOk = !!(process.env.VAPID_SUBJECT && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
   if (!vapidOk) {

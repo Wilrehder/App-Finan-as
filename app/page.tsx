@@ -47,8 +47,8 @@ export default function LandingPage() {
         </div>
 
         <Link href="/cadastro" className="w-full max-w-xs">
-          <Button size="lg" className="w-full rounded-full shadow-lg shadow-primary/20 text-lg">
-            Começar Gratuitamente
+          <Button size="lg" className="w-full rounded-full shadow-lg shadow-primary/20 text-lg font-semibold">
+            Assinar Finchat
           </Button>
         </Link>
 

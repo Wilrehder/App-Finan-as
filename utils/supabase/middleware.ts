@@ -36,20 +36,35 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/cadastro')
-  const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/chat') || request.nextUrl.pathname.startsWith('/configuracoes')
+  const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/chat') || request.nextUrl.pathname.startsWith('/configuracoes') || request.nextUrl.pathname.startsWith('/calendario') || request.nextUrl.pathname.startsWith('/objetivos')
+  const isAssinaturaPage = request.nextUrl.pathname.startsWith('/assinatura')
 
   if (
     !user &&
-    isProtectedRoute
+    (isProtectedRoute || isAssinaturaPage)
   ) {
-    // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
+  if (user && isProtectedRoute) {
+    const status = user.user_metadata?.subscription_status
+    if (status !== 'active') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/assinatura'
+      return NextResponse.redirect(url)
+    }
+  }
+
   if (user && isAuthPage) {
-    // user is authenticated, redirect to chat
+    const status = user.user_metadata?.subscription_status
+    const url = request.nextUrl.clone()
+    url.pathname = status === 'active' ? '/chat' : '/assinatura'
+    return NextResponse.redirect(url)
+  }
+
+  if (user && isAssinaturaPage && user.user_metadata?.subscription_status === 'active') {
     const url = request.nextUrl.clone()
     url.pathname = '/chat'
     return NextResponse.redirect(url)

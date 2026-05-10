@@ -109,10 +109,26 @@ export async function getDashboardData(filters?: DashboardFilters) {
     queryPrev = queryPrev.eq('type', filters.type)
   }
 
-  const [resCurrent, resPrev] = await Promise.all([queryCurrent, queryPrev])
+  let queryGoalsCurrent = supabase
+    .from('goal_deposits')
+    .select('*, goals!inner(name, icon, user_id)')
+    .eq('goals.user_id', user.id)
+    .gte('deposit_date', startDate)
+    .lte('deposit_date', endDate)
+
+  let queryGoalsPrev = supabase
+    .from('goal_deposits')
+    .select('*, goals!inner(user_id)')
+    .eq('goals.user_id', user.id)
+    .gte('deposit_date', prevStartDate)
+    .lte('deposit_date', prevEndDate)
+
+  const [resCurrent, resPrev, resGoalsCurrent, resGoalsPrev] = await Promise.all([queryCurrent, queryPrev, queryGoalsCurrent, queryGoalsPrev])
 
   if (resCurrent.error) console.error(resCurrent.error)
   if (resPrev.error) console.error(resPrev.error)
+  if (resGoalsCurrent.error) console.error(resGoalsCurrent.error)
+  if (resGoalsPrev.error) console.error(resGoalsPrev.error)
 
   const transactions = resCurrent.data || []
   const prevTransactions = resPrev.data || []
@@ -137,8 +153,16 @@ export async function getDashboardData(filters?: DashboardFilters) {
     else prevExpense += Number(t.amount)
   })
 
-  const balance = income - expense
-  const prevBalance = prevIncome - prevExpense
+  let goalsTotal = 0
+  const goalsCurrent = resGoalsCurrent.data || []
+  goalsCurrent.forEach(g => { goalsTotal += Number(g.amount) })
+
+  let prevGoalsTotal = 0
+  const goalsPrev = resGoalsPrev.data || []
+  goalsPrev.forEach(g => { prevGoalsTotal += Number(g.amount) })
+
+  const balance = income - expense - goalsTotal
+  const prevBalance = prevIncome - prevExpense - prevGoalsTotal
 
   const calculateChange = (current: number, previous: number) => {
     if (previous === 0) return current > 0 ? 100 : (current < 0 ? -100 : 0);
@@ -148,6 +172,7 @@ export async function getDashboardData(filters?: DashboardFilters) {
   const incomeChange = calculateChange(income, prevIncome)
   const expenseChange = calculateChange(expense, prevExpense)
   const balanceChange = calculateChange(balance, prevBalance)
+  const goalsChange = calculateChange(goalsTotal, prevGoalsTotal)
   
   let savingsRate = 0
   if (income > 0) {
@@ -159,19 +184,39 @@ export async function getDashboardData(filters?: DashboardFilters) {
     value: categoryTotals[category]
   })).sort((a, b) => b.value - a.value)
 
+  // Format goal deposits to look like transactions for the list
+  const formattedGoals = goalsCurrent.map(g => ({
+    id: `goal_${g.id}`,
+    amount: g.amount,
+    category: 'Objetivos',
+    description: `Aporte: ${g.goals?.name || 'Meta'}`,
+    transaction_date: g.deposit_date,
+    type: 'goal_deposit',
+    created_at: g.created_at || g.deposit_date
+  }))
+
+  const allTransactions = [...transactions, ...formattedGoals].sort((a, b) => {
+    const dateA = new Date(a.transaction_date).getTime()
+    const dateB = new Date(b.transaction_date).getTime()
+    if (dateA !== dateB) return dateB - dateA
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+
   return {
     balance,
     income,
     expense,
-    transactions,
+    goalsTotal,
+    transactions: allTransactions,
     chartData,
-    totalTransactions: transactions.length,
+    totalTransactions: allTransactions.length,
     savingsRate,
     periodLabel: period, // to help frontend
     changes: {
       income: incomeChange,
       expense: expenseChange,
-      balance: balanceChange
+      balance: balanceChange,
+      goals: goalsChange
     }
   }
 }

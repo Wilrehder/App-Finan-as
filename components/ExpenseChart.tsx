@@ -22,8 +22,18 @@ export const CHART_COLORS = ['#818cf8', '#60a5fa', '#34d399', '#a78bfa', '#fbbf2
 
 export function ExpenseChart({ data, transactions = [] }: ChartProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [includeGoals, setIncludeGoals] = useState(false)
 
-  if (!data || data.length === 0) {
+  let displayData = [...data]
+  if (includeGoals) {
+    const goalsTotal = transactions.filter(t => t.type === 'goal_deposit').reduce((acc, t) => acc + Number(t.amount), 0)
+    if (goalsTotal > 0) {
+      displayData.push({ name: 'Objetivos', value: goalsTotal })
+      displayData.sort((a, b) => b.value - a.value)
+    }
+  }
+
+  if (!displayData || displayData.length === 0) {
     return (
       <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
         Nenhum gasto registrado este mês.
@@ -33,11 +43,27 @@ export function ExpenseChart({ data, transactions = [] }: ChartProps) {
 
   return (
     <>
-      <div className="h-48 w-full mt-4 cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setIsModalOpen(true)}>
+      <div className="flex justify-end mb-2">
+        <label className="flex items-center cursor-pointer gap-2 select-none">
+          <div className="relative">
+            <input 
+              type="checkbox" 
+              className="sr-only" 
+              checked={includeGoals} 
+              onChange={() => setIncludeGoals(!includeGoals)} 
+            />
+            <div className={`block w-10 h-6 rounded-full transition-colors ${includeGoals ? 'bg-indigo-500' : 'bg-secondary'}`}></div>
+            <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${includeGoals ? 'translate-x-4' : ''}`}></div>
+          </div>
+          <span className="text-xs text-muted-foreground">Incluir Objetivos</span>
+        </label>
+      </div>
+
+      <div className="h-48 w-full mt-2 cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setIsModalOpen(true)}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={data}
+              data={displayData}
               cx="50%"
               cy="50%"
               innerRadius={60}
@@ -47,8 +73,8 @@ export function ExpenseChart({ data, transactions = [] }: ChartProps) {
               stroke="none"
               onClick={() => setIsModalOpen(true)}
             >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+              {displayData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.name === 'Objetivos' ? '#a5b4fc' : CHART_COLORS[index % CHART_COLORS.length]} />
               ))}
             </Pie>
             <Tooltip 

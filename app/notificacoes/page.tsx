@@ -1,6 +1,5 @@
 import { getNotifications } from './actions';
 import { NotificationCenter } from '@/components/notification-center';
-import { CreateReminderModal } from '@/components/create-reminder-modal';
 
 export default async function NotificacoesPage() {
   const { notifications, unreadCount } = await getNotifications();
@@ -14,7 +13,6 @@ export default async function NotificacoesPage() {
             {unreadCount > 0 ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : 'Tudo em dia ✓'}
           </p>
         </div>
-        <CreateReminderModal />
       </div>
 
       <NotificationCenter notifications={notifications} />

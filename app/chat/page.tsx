@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import { Send, Mic, Square, Trash2, Calendar } from "lucide-react"
 import Link from "next/link"
-import { parseUserIntent, confirmTransaction, confirmFixedTransaction, deleteLastTransaction, confirmReminder, confirmGoal, confirmGoalDeposit } from "./actions"
+import { parseUserIntent, confirmTransaction, confirmFixedTransaction, deleteLastTransaction, confirmGoal, confirmGoalDeposit } from "./actions"
 import { GoalPreviewCard } from "@/components/goal-preview-card"
 import { transcribeAudio } from "./audio-actions"
 import { Button } from "@/components/ui/button"
@@ -357,13 +357,6 @@ export default function ChatPage() {
           role: "bot",
           content: response.message
         }])
-      } else if (forceAction === 'confirmar_lembrete') {
-        const response = await confirmReminder(payload)
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          role: "bot",
-          content: response.message
-        }])
       } else if (forceAction === 'confirmar_goal') {
         const response = await confirmGoal(payload)
         setMessages(prev => [...prev, {
@@ -501,7 +494,6 @@ export default function ChatPage() {
           if (!isIncomplete) {
             // Só exibe botões de confirmar quando temos dados completos
             const confirmAction = intent === 'register_fixed' ? 'confirmar_fixa' : 
-                                 intent === 'reminder' ? 'confirmar_lembrete' : 
                                  intent === 'create_goal' ? 'confirmar_goal' : 
                                  intent === 'goal_deposit' ? 'confirmar_goal_deposit' : 'confirmar';
             newBotMsg.options = [

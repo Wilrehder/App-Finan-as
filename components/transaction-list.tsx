@@ -11,7 +11,7 @@ type Transaction = {
   id: string;
   description: string;
   amount: number | string;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'goal_deposit';
   category: string;
   transaction_date: string;
   recurring_id: string | null;
@@ -33,10 +33,14 @@ function TransactionItem({ t }: { t: Transaction }) {
       <div className="flex items-center gap-3">
         <div
           className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-            t.type === 'income' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
+            t.type === 'income' ? 'bg-green-500/20 text-green-500' : 
+            t.type === 'goal_deposit' ? 'bg-indigo-500/20 text-indigo-400' : 
+            'bg-red-500/20 text-red-500'
           }`}
         >
-          {t.type === 'income' ? <ArrowUpIcon size={18} /> : <ArrowDownIcon size={18} />}
+          {t.type === 'income' ? <ArrowUpIcon size={18} /> : 
+           t.type === 'goal_deposit' ? <span className="text-lg">🎯</span> : 
+           <ArrowDownIcon size={18} />}
         </div>
         <div className="min-w-0">
           <p className="font-medium text-sm leading-tight truncate max-w-[160px]">{t.description}</p>
@@ -46,11 +50,13 @@ function TransactionItem({ t }: { t: Transaction }) {
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        <span className={`font-semibold text-sm ${t.type === 'income' ? 'text-green-500' : ''}`}>
-          {t.type === 'income' ? '+' : '-'}R${' '}
+        <span className={`font-semibold text-sm ${t.type === 'income' ? 'text-green-500' : t.type === 'goal_deposit' ? 'text-indigo-400' : ''}`}>
+          {t.type === 'income' ? '+' : t.type === 'goal_deposit' ? '' : '-'}R${' '}
           {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </span>
-        <DeleteTransactionButton id={t.id} description={t.description} />
+        {t.type !== 'goal_deposit' && (
+          <DeleteTransactionButton id={t.id} description={t.description} />
+        )}
       </div>
     </div>
   );

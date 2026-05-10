@@ -86,7 +86,7 @@ export async function parseUserIntent(message: string, context?: ParsedIntent) {
     return await generateGoalStatus(parsed);
   }
 
-  // Se for register_fixed, reminder, ou register normal:
+  // Se for register_fixed ou register normal:
   return {
     success: true,
     message: parsed.reply_message || "Tudo certo! Posso confirmar?",
@@ -282,103 +282,7 @@ export async function deleteLastTransaction() {
   }
 }
 
-export async function confirmReminder(parsed: ParsedIntent) {
-  const supabase = await createClient()
-  
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-  if (userError || !user) throw new Error("Unauthorized")
 
-  const { error: dbError } = await supabase
-    .from('reminders')
-    .insert({
-      user_id: user.id,
-      title: parsed.description,
-      remind_at: parsed.remind_at,
-      frequency: parsed.frequency,
-      day_of_month: parsed.day_of_month,
-      day_of_week: parsed.day_of_week,
-      specific_date: parsed.specific_date,
-    })
-
-  if (dbError) {
-    return {
-      success: false,
-      message: "Erro ao salvar lembrete no banco de dados. " + dbError.message
-    }
-  }
-
-  // Integração com QStash para envio EXATO no minuto
-  if (process.env.QSTASH_TOKEN) {
-    try {
-      const { Client } = require("@upstash/qstash");
-      const qstash = new Client({ 
-        token: process.env.QSTASH_TOKEN,
-      });
-      
-      // Tenta pegar a URL de várias formas seguras
-      let appUrl = process.env.NEXT_PUBLIC_APP_URL;
-      if (!appUrl && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-        appUrl = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-      }
-      if (!appUrl) {
-        appUrl = "https://app-finan-as.vercel.app"; // Fallback absoluto para o projeto atual
-      }
-      
-      const dest = `${appUrl}/api/push/qstash`;
-
-      const { data: inserted } = await supabase
-        .from('reminders')
-        .select('id')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (inserted) {
-        if (parsed.frequency === 'once' && parsed.specific_date) {
-          const [y, m, d] = parsed.specific_date.split('-');
-          const parts = parsed.remind_at!.split(':');
-          const hr = parts[0];
-          const min = parts[1];
-          const sec = parts[2] ?? '00'; // time inputs retornam HH:MM sem segundos
-          const dateString = `${y}-${m}-${d}T${hr}:${min}:${sec}-03:00`;
-          const timestamp = Math.floor(new Date(dateString).getTime() / 1000);
-
-          await qstash.publishJSON({
-            url: dest,
-            body: { reminderId: inserted.id, userId: user.id },
-            notBefore: timestamp
-          });
-        } else {
-          const hr = parseInt(parsed.remind_at!.split(':')[0]);
-          const min = parseInt(parsed.remind_at!.split(':')[1]);
-          const utcHr = (hr + 3) % 24;
-
-          let cronStr = `${min} ${utcHr} * * *`;
-          if (parsed.frequency === 'monthly') cronStr = `${min} ${utcHr} ${parsed.day_of_month} * *`;
-          if (parsed.frequency === 'weekly') cronStr = `${min} ${utcHr} * * ${parsed.day_of_week}`;
-
-          await qstash.schedules.create({
-            destination: dest,
-            cron: cronStr,
-            body: { reminderId: inserted.id, userId: user.id }
-          });
-        }
-      }
-    } catch (e) {
-      console.error("Erro ao agendar no QStash", e);
-    }
-  }
-
-  revalidatePath("/calendario")
-  revalidatePath("/chat")
-  revalidatePath("/notificacoes")
-
-  return {
-    success: true,
-    message: `🔔 Lembrete "${parsed.description}" agendado com sucesso!`
-  }
-}
 
 export async function deleteReminder(id: string) {
   const supabase = await createClient()

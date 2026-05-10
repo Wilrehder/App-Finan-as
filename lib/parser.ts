@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 export type TransactionType = 'income' | 'expense';
-export type ChatIntentType = 'register' | 'register_fixed' | 'incomplete_fixed' | 'report' | 'manage_fixed' | 'delete' | 'reminder' | 'create_goal' | 'goal_deposit' | 'goal_status' | 'unknown';
+export type ChatIntentType = 'register' | 'register_fixed' | 'incomplete_fixed' | 'report' | 'manage_fixed' | 'delete' | 'create_goal' | 'goal_deposit' | 'goal_status' | 'unknown';
 
 export interface ParsedIntent {
   intent: ChatIntentType;
@@ -22,12 +22,6 @@ export interface ParsedIntent {
   report_period_name?: string;
   report_category?: string;
   report_type?: 'income' | 'expense';
-
-  // Para reminder:
-  remind_at?: string; // HH:MM
-  frequency?: 'once' | 'daily' | 'weekly' | 'monthly';
-  specific_date?: string;
-  day_of_week?: number;
 
   // Para metas (goals):
   goal_name?: string;
@@ -60,7 +54,7 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
 
 O JSON deve seguir a interface TypeScript:
 {
-  "intent": "register" | "register_fixed" | "incomplete_fixed" | "report" | "manage_fixed" | "delete" | "reminder" | "unknown",
+  "intent": "register" | "register_fixed" | "incomplete_fixed" | "report" | "manage_fixed" | "delete" | "create_goal" | "goal_deposit" | "goal_status" | "unknown",
   "type": "income" | "expense", // OPCIONAL
   "amount": number, // OPCIONAL
   "category": "string", // Ex: Alimentação, Transporte, Moradia, Saúde, Lazer, Serviços, Salário, Outros
@@ -73,9 +67,6 @@ O JSON deve seguir a interface TypeScript:
   "report_period_name": "string", // OPCIONAL (ex: "este mês", "janeiro")
   "report_category": "string", // OPCIONAL
   "report_type": "income" | "expense", // OPCIONAL
-  "remind_at": "HH:MM", // OPCIONAL
-  "frequency": "once" | "daily" | "weekly" | "monthly", // OPCIONAL
-  "specific_date": "YYYY-MM-DD", // OPCIONAL
   "goal_name": "string", // OPCIONAL
   "goal_target_amount": number, // OPCIONAL
   "goal_deadline": "YYYY-MM-DD", // OPCIONAL
@@ -101,9 +92,6 @@ Regras:
    - Preencha 'report_start_date' e 'report_end_date' baseados no período solicitado, e um 'report_period_name'.
    - Se o usuário pedir apenas de uma categoria (ex: mercado, alimentação), preencha 'report_category' (capitalize a primeira letra se for categoria).
    - Se o usuário especificar apenas despesas ("gastei", "despesas") ou apenas receitas ("ganhei", "receitas"), preencha 'report_type' com 'expense' ou 'income'.
-6. 'reminder': Para criar lembretes/alarmes ("me lembre de pagar luz às 10:30 amanhã").
-   - Preencha 'remind_at' no formato 24h HH:MM, 'frequency' ('once', 'daily', etc), e a 'description'.
-   - Se for 'once', preencha 'specific_date' (YYYY-MM-DD).
 7. 'create_goal': Para criar metas financeiras/objetivos ("Quero juntar dinheiro para uma viagem", "Criar meta de 20 mil até dezembro todo dia 10").
    - Preencha 'goal_name', 'goal_target_amount', 'goal_deadline' (YYYY-MM-DD) e 'goal_frequency' ('daily', 'weekly' ou 'monthly').
    - Se for 'monthly' e houver dia específico ("todo dia 10"), preencha 'goal_payment_day'.

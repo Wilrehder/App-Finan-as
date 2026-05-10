@@ -162,6 +162,7 @@ export function DashboardFilters({
           { value: "all",     label: "Todas" },
           { value: "income",  label: "Receitas" },
           { value: "expense", label: "Despesas" },
+          { value: "goal_deposit", label: "Objetivos" },
         ].map(opt => (
           <button
             key={opt.value}

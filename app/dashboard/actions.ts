@@ -153,12 +153,19 @@ export async function getDashboardData(filters?: DashboardFilters) {
     else prevExpense += Number(t.amount)
   })
 
+  let goalsCurrent = resGoalsCurrent.data || []
+  let goalsPrev = resGoalsPrev.data || []
+
+  // Applica filtro nos objetivos
+  if (filters?.type && filters.type !== 'all' && filters.type !== 'goal_deposit') {
+    goalsCurrent = []
+    goalsPrev = []
+  }
+
   let goalsTotal = 0
-  const goalsCurrent = resGoalsCurrent.data || []
   goalsCurrent.forEach(g => { goalsTotal += Number(g.amount) })
 
   let prevGoalsTotal = 0
-  const goalsPrev = resGoalsPrev.data || []
   goalsPrev.forEach(g => { prevGoalsTotal += Number(g.amount) })
 
   const balance = income - expense - goalsTotal

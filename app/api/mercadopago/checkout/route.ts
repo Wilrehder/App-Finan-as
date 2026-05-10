@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { MercadoPagoConfig, PreApproval } from 'mercadopago'
+import { MercadoPagoConfig, Preference } from 'mercadopago'
 import { createClient } from "@/utils/supabase/server"
 
 // Initialize Mercado Pago
@@ -17,26 +17,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const preApproval = new PreApproval(client)
+    const preference = new Preference(client)
 
-    // Mercado Pago PreApproval (Subscription) API requires an email
     const userEmail = user.email || 'contato@finchat.app'
 
     const body = {
-      reason: 'Assinatura Anual Finchat',
-      external_reference: user.id, // We use this to identify the user in the Webhook
-      payer_email: userEmail,
-      auto_recurring: {
-        frequency: 12, // Every 12
-        frequency_type: 'months', // Months = Yearly
-        transaction_amount: 69.90, // R$ 69,90
-        currency_id: 'BRL',
+      items: [
+        {
+          id: 'ano_finchat',
+          title: 'Acesso Anual Finchat',
+          quantity: 1,
+          unit_price: 69.90,
+          currency_id: 'BRL',
+        }
+      ],
+      payer: {
+        email: userEmail,
       },
-      back_url: `${process.env.NEXT_PUBLIC_APP_URL}/chat`,
-      status: 'pending'
+      external_reference: user.id, // O Webhook usa isso para identificar o usuário
+      back_urls: {
+        success: `${process.env.NEXT_PUBLIC_APP_URL}/chat`,
+        failure: `${process.env.NEXT_PUBLIC_APP_URL}/assinatura`,
+        pending: `${process.env.NEXT_PUBLIC_APP_URL}/chat`,
+      },
+      auto_return: 'approved' as const,
     }
 
-    const response = await preApproval.create({ body })
+    const response = await preference.create({ body })
 
     // Redirect the user to the Mercado Pago checkout URL
     return NextResponse.json({ init_point: response.init_point })

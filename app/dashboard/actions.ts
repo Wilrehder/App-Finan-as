@@ -7,7 +7,7 @@ export type DashboardFilters = {
   year?: number;
   date?: string;
   period?: 'day' | 'week' | 'month' | 'year';
-  type?: 'all' | 'income' | 'expense';
+  type?: 'all' | 'income' | 'expense' | 'goal_deposit';
 }
 
 function getPeriodDates(baseDateStr: string, period: 'day' | 'week' | 'month' | 'year') {

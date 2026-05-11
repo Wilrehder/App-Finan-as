@@ -26,8 +26,8 @@ export function BottomNav() {
     },
   ]
 
-  // Don't render on auth pages or landing page
-  if (pathname === "/" || pathname === "/login" || pathname === "/cadastro") {
+  // Don't render on auth pages, landing page, or paywall
+  if (pathname === "/" || pathname === "/login" || pathname === "/cadastro" || pathname === "/assinatura") {
     return null
   }
 

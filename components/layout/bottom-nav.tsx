@@ -27,7 +27,8 @@ export function BottomNav() {
   ]
 
   // Don't render on auth pages, landing page, or paywall
-  if (pathname === "/" || pathname === "/login" || pathname === "/cadastro" || pathname === "/assinatura") {
+  const hiddenRoutes = ["/login", "/cadastro", "/assinatura"]
+  if (pathname === "/" || hiddenRoutes.some(route => pathname.startsWith(route))) {
     return null
   }
 

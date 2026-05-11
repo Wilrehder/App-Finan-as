@@ -5,6 +5,7 @@ import { BottomNav } from "@/components/layout/bottom-nav";
 import { InstallPrompt } from "@/components/install-prompt";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { ThemeProvider } from "@/components/theme-provider";
+import { OnboardingTour } from "@/components/onboarding-tour";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -84,6 +85,7 @@ export default function RootLayout({
             {children}
           </main>
           <BottomNav />
+          <OnboardingTour />
         </ThemeProvider>
       </body>
     </html>

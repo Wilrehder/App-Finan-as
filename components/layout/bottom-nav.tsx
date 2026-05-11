@@ -41,6 +41,7 @@ export function BottomNav() {
             <Link
               key={item.name}
               href={item.href}
+              id={item.name === "Painel" ? "tour-dashboard-tab" : item.name === "Ajustes" ? "tour-settings-tab" : undefined}
               className={cn(
                 "flex flex-col items-center justify-center w-16 h-14 relative transition-all duration-300",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"

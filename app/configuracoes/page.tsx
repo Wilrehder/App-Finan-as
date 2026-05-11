@@ -9,6 +9,7 @@ import { PushToggle } from "@/components/push-toggle"
 import { NotificationPreferences } from "@/components/notification-preferences"
 import { getNotificationPreferences } from "@/app/notificacoes/actions"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { RestartTourButton } from "@/components/restart-tour-button"
 
 export const revalidate = 30
 
@@ -52,6 +53,7 @@ export default async function ConfiguracoesPage() {
           <CardContent className="space-y-4">
             <ThemeToggle />
             <PushToggle />
+            <RestartTourButton />
           </CardContent>
         </Card>
 

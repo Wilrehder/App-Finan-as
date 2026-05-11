@@ -656,7 +656,7 @@ export default function ChatPage() {
       </div>
 
       <div className="p-4 bg-background/90 backdrop-blur-xl border-t border-white/5 z-40">
-        <form onSubmit={onSubmit} className="flex gap-2">
+        <form onSubmit={onSubmit} className="flex gap-2" id="tour-chat-input">
           {isRecording ? (
             <div className="flex-1 rounded-full h-14 bg-red-500/10 text-red-500 border border-red-500/30 flex items-center justify-between px-6 font-medium">
               <div className="animate-pulse flex items-center gap-2">

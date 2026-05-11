@@ -1,11 +1,28 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { ShieldCheck, Sparkles, TrendingUp, Lock } from "lucide-react"
+import { ShieldCheck, Sparkles, TrendingUp, Lock, RefreshCcw } from "lucide-react"
+import { createClient } from "@/utils/supabase/client"
 
 export default function AssinaturaPage() {
   const [loading, setLoading] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const supabase = createClient()
+
+  // Polling para verificar se o webhook do Mercado Pago já liberou o acesso
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.user_metadata?.subscription_status === 'active') {
+        setVerifying(true)
+        await supabase.auth.refreshSession() // Força atualização do JWT cookie local
+        window.location.href = '/chat' // Force hard reload to clear middleware cache
+      }
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [supabase])
 
   const handleSubscribe = async () => {
     setLoading(true)
@@ -75,13 +92,17 @@ export default function AssinaturaPage() {
             size="lg" 
             className="w-full rounded-full shadow-lg shadow-primary/25 text-lg font-bold h-14"
             onClick={handleSubscribe}
-            disabled={loading}
+            disabled={loading || verifying}
           >
-            {loading ? "Processando..." : "Assinar Plano Anual"}
+            {verifying ? (
+              <span className="flex items-center gap-2">
+                <RefreshCcw className="w-5 h-5 animate-spin" /> Pagamento Aprovado!
+              </span>
+            ) : loading ? "Processando..." : "Assinar Plano Anual"}
           </Button>
           
           <p className="text-xs text-muted-foreground text-center">
-            Pagamento 100% seguro processado pelo Mercado Pago.
+            {verifying ? "Redirecionando para o aplicativo..." : "Pagamento 100% seguro processado pelo Mercado Pago."}
           </p>
         </div>
       </div>

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Joyride, EventData, STATUS, Step } from "react-joyride";
+import { Joyride, EventData, STATUS, Step, ACTIONS, EVENTS } from "react-joyride";
 import { usePathname, useRouter } from "next/navigation";
 
 export function OnboardingTour() {
   const [run, setRun] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -26,6 +27,7 @@ export function OnboardingTour() {
         localStorage.setItem("finchat_tour_pending", "true");
       } else {
         localStorage.removeItem("finchat_tour_completed");
+        setStepIndex(0);
         setRun(true);
       }
     };
@@ -36,6 +38,7 @@ export function OnboardingTour() {
     if (pathname === "/chat" && localStorage.getItem("finchat_tour_pending") === "true") {
       localStorage.removeItem("finchat_tour_pending");
       localStorage.removeItem("finchat_tour_completed");
+      setStepIndex(0);
       setTimeout(() => setRun(true), 1000);
     }
 
@@ -59,25 +62,78 @@ export function OnboardingTour() {
     },
     {
       target: "#tour-dashboard-tab",
-      content: "No Painel, você tem acesso a gráficos dinâmicos, balanço do mês e todo o histórico das suas transações de forma visual.",
+      content: "No Painel, você tem acesso a gráficos dinâmicos, balanço do mês e todo o histórico das suas transações de forma visual. Vamos dar uma olhada lá agora!",
+      placement: "top",
+      skipBeacon: true,
+    },
+    {
+      target: "#tour-dashboard-overview",
+      content: "Este é o seu balanço geral. Aqui você acompanha rapidamente o saldo do mês atual e vê o comparativo direto com o mês anterior.",
+      placement: "bottom",
+      skipBeacon: true,
+    },
+    {
+      target: "#tour-dashboard-goals",
+      content: "Aqui ficam suas Metas e Objetivos de vida (como viagens ou uma reserva de emergência).",
+      placement: "bottom",
+      skipBeacon: true,
+    },
+    {
+      target: "#tour-dashboard-insights",
+      content: "Insights do Fin! Nossa inteligência artificial analisa seus padrões de gastos e te dá dicas diárias de onde você pode economizar mais dinheiro.",
+      placement: "top",
+      skipBeacon: true,
+    },
+    {
+      target: "#tour-dashboard-transactions",
+      content: "Este é o seu Extrato detalhado. Você também pode exportar relatórios em PDF do mês fechado clicando naquele botão.",
       placement: "top",
       skipBeacon: true,
     },
     {
       target: "#tour-settings-tab",
-      content: "Nos Ajustes, você pode configurar lembretes, metas e gerenciar seu perfil. Aproveite o Finchat!",
+      content: "Por fim, nos Ajustes, você pode configurar lembretes, sua conta e gerenciar assinaturas. Aproveite o Finchat!",
       placement: "top",
       skipBeacon: true,
     },
   ];
 
   const handleJoyrideCallback = (data: EventData) => {
-    const { status } = data;
+    const { action, index, status, type } = data;
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
 
     if (finishedStatuses.includes(status)) {
       localStorage.setItem("finchat_tour_completed", "true");
+      setStepIndex(0);
       setRun(false);
+      return;
+    }
+
+    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+      // Avança ou retrocede o passo
+      const nextStepIndex = index + (action === ACTIONS.PREV ? -1 : 1);
+      
+      // Se clicou para avançar no passo do ícone do Painel (index 2)
+      if (action === ACTIONS.NEXT && index === 2) {
+        setRun(false); // Pausa temporariamente
+        router.push("/dashboard");
+        setTimeout(() => {
+          setStepIndex(nextStepIndex);
+          setRun(true);
+        }, 800); // Aguarda página carregar
+      } 
+      // Se clicou em voltar estando no primeiro card do dashboard (index 3)
+      else if (action === ACTIONS.PREV && index === 3) {
+        setRun(false);
+        router.push("/chat");
+        setTimeout(() => {
+          setStepIndex(nextStepIndex);
+          setRun(true);
+        }, 800);
+      }
+      else {
+        setStepIndex(nextStepIndex);
+      }
     }
   };
 
@@ -88,6 +144,7 @@ export function OnboardingTour() {
 
   return (
     <Joyride
+      stepIndex={stepIndex}
       onEvent={handleJoyrideCallback}
       continuous
       run={run}

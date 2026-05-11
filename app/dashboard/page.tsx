@@ -66,7 +66,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
         availableYears={availablePeriods.availableYears} 
       />
 
-      <Card className="bg-primary text-primary-foreground border-none shadow-lg">
+      <Card id="tour-dashboard-overview" className="bg-primary text-primary-foreground border-none shadow-lg">
         <CardHeader className="pb-2">
           <CardDescription className="text-primary-foreground/70 font-medium flex items-center gap-1.5">
             Resultado do {data.periodLabel === 'day' ? 'Dia' : data.periodLabel === 'week' ? 'Período' : data.periodLabel === 'year' ? 'Ano' : 'Mês'}
@@ -125,7 +125,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
         </CardContent>
       </Card>
 
-      <Link href="/objetivos" className="block animate-in fade-in zoom-in-95 duration-500 delay-100">
+      <Link id="tour-dashboard-goals" href="/objetivos" className="block animate-in fade-in zoom-in-95 duration-500 delay-100">
         <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 hover:border-indigo-500/40 transition-colors shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
             <span className="text-6xl">🎯</span>
@@ -182,7 +182,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
         )}
       </div>
 
-      <div className="space-y-4">
+      <div id="tour-dashboard-transactions" className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold tracking-tight">Extrato do Período</h2>
           <ExportPdfButton

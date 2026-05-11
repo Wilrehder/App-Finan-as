@@ -68,7 +68,7 @@ export function FinInsights() {
   if (insights.length === 0) return null;
 
   return (
-    <Card className="border-none shadow-xl bg-gradient-to-br from-[#1E293B] to-[#0F172A] mb-8 overflow-hidden relative transform transition-all duration-500 hover:scale-[1.01]">
+    <Card id="tour-dashboard-insights" className="border-none shadow-xl bg-gradient-to-br from-[#1E293B] to-[#0F172A] mb-8 overflow-hidden relative transform transition-all duration-500 hover:scale-[1.01]">
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none"></div>
       
       {/* Decoração de fundo */}

@@ -41,6 +41,7 @@ export async function POST(req: Request) {
         pending: `${process.env.NEXT_PUBLIC_APP_URL}/chat`,
       },
       auto_return: 'approved' as const,
+      notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago`,
     }
 
     const response = await preference.create({ body })

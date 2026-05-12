@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { PieChart, List, X, ArrowRightLeft, GripVertical } from "lucide-react"
+import { PieChart, List, X, ArrowRightLeft, GripVertical, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { updateTransactionCategory } from "@/app/dashboard/actions"
 import { useRouter } from "next/navigation"
@@ -32,6 +32,12 @@ export function CategoryBreakdownModal({ transactions, onClose }: CategoryBreakd
   const [editingTxId, setEditingTxId] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
   const [dragOverCategory, setDragOverCategory] = useState<string | null>(null)
+  const [customCategories, setCustomCategories] = useState<string[]>([])
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState("")
+
+  const existingCategories = Array.from(new Set(expenses.map(t => t.category)))
+  const ALL_CATEGORIES = Array.from(new Set([...PREDEFINED_CATEGORIES, ...existingCategories, ...customCategories]))
   
   // Agrupar por categoria
   const byCategory = expenses.reduce((acc, tx) => {
@@ -42,7 +48,7 @@ export function CategoryBreakdownModal({ transactions, onClose }: CategoryBreakd
   }, {} as Record<string, { total: number, items: Transaction[] }>)
 
   // Adicionar categorias pré-definidas vazias para permitir arrastar para elas
-  PREDEFINED_CATEGORIES.forEach(cat => {
+  ALL_CATEGORIES.forEach(cat => {
     if (!byCategory[cat]) byCategory[cat] = { total: 0, items: [] }
   })
 
@@ -91,7 +97,44 @@ export function CategoryBreakdownModal({ transactions, onClose }: CategoryBreakd
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar">
-          <p className="text-xs text-center text-muted-foreground mb-4">Arraste os gastos para alterar sua categoria rapidamente.</p>
+          <div className="flex flex-col gap-2 mb-2">
+            <p className="text-xs text-center text-muted-foreground mb-2">Arraste os gastos para alterar sua categoria rapidamente.</p>
+            
+            {!isCreatingCategory ? (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full border-dashed border-border/50 text-muted-foreground hover:text-foreground"
+                onClick={() => setIsCreatingCategory(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Nova Categoria
+              </Button>
+            ) : (
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (newCategoryName.trim() && !ALL_CATEGORIES.includes(newCategoryName.trim())) {
+                    setCustomCategories(prev => [...prev, newCategoryName.trim()])
+                  }
+                  setNewCategoryName("")
+                  setIsCreatingCategory(false)
+                }}
+                className="flex gap-2 animate-in fade-in zoom-in-95"
+              >
+                <input 
+                  type="text" 
+                  autoFocus
+                  placeholder="Nome da categoria..." 
+                  className="flex-1 bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 transition"
+                  value={newCategoryName}
+                  onChange={e => setNewCategoryName(e.target.value)}
+                />
+                <Button type="submit" size="sm" className="bg-indigo-500 hover:bg-indigo-600 text-white h-auto py-2">Adicionar</Button>
+                <Button type="button" variant="ghost" size="sm" className="h-auto py-2" onClick={() => {setIsCreatingCategory(false); setNewCategoryName("")}}>Cancelar</Button>
+              </form>
+            )}
+          </div>
           {sortedCategories.map(([category, data]) => (
             <div 
               key={category} 
@@ -156,7 +199,7 @@ export function CategoryBreakdownModal({ transactions, onClose }: CategoryBreakd
                       {editingTxId === tx.id ? (
                         <div className="mt-2 pt-2 border-t border-border flex flex-wrap gap-2 pl-5">
                           <p className="text-xs w-full text-muted-foreground mb-1">Mover para:</p>
-                          {PREDEFINED_CATEGORIES.filter(c => c !== tx.category).map(cat => (
+                          {ALL_CATEGORIES.filter(c => c !== tx.category).map(cat => (
                             <button
                               key={cat}
                               disabled={updating}

@@ -46,8 +46,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // Sem classe dark hardcoded — o ThemeProvider aplica via JS no cliente
-    <html lang="pt-BR">
+    // suppressHydrationWarning evita mismatch do script de tema que adiciona classe no <html>
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         {/* Script anti-flash: lê localStorage ANTES do primeiro render */}
         <script
@@ -75,15 +75,11 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon.png?v=2" />
         <link rel="shortcut icon" href="/apple-touch-icon.png?v=2" />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased h-[100dvh] overflow-hidden`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
           <NavigationProgress />
-          <main className="max-w-md mx-auto h-full relative overflow-y-auto no-scrollbar pb-[80px]">
-            <InstallPrompt />
-            {children}
-          </main>
+          <InstallPrompt />
+          {children}
           <BottomNav />
           <OnboardingTour />
         </ThemeProvider>

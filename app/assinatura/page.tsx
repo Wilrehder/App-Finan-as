@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { ShieldCheck, Sparkles, TrendingUp, Lock, RefreshCcw } from "lucide-react"
+import Image from "next/image"
+import { ShieldCheck, Sparkles, TrendingUp, RefreshCcw, Zap, CheckCircle2 } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
 
 export default function AssinaturaPage() {
@@ -10,101 +10,135 @@ export default function AssinaturaPage() {
   const [verifying, setVerifying] = useState(false)
   const supabase = createClient()
 
-  // Polling para verificar se o webhook do Mercado Pago já liberou o acesso
+  // Polling: detecta quando o webhook do Mercado Pago liberar o acesso
   useEffect(() => {
     const interval = setInterval(async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user?.user_metadata?.subscription_status === 'active') {
+      if (user?.user_metadata?.subscription_status === "active") {
         setVerifying(true)
-        await supabase.auth.refreshSession() // Força atualização do JWT cookie local
-        window.location.href = '/chat' // Force hard reload to clear middleware cache
+        await supabase.auth.refreshSession()
+        window.location.href = "/chat"
       }
     }, 4000)
-
     return () => clearInterval(interval)
   }, [supabase])
 
   const handleSubscribe = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/mercadopago/checkout', {
-        method: 'POST',
-      })
+      const response = await fetch("/api/mercadopago/checkout", { method: "POST" })
       const data = await response.json()
-      
       if (data.init_point) {
         window.location.href = data.init_point
       } else {
         alert("Erro ao iniciar pagamento. Tente novamente.")
         setLoading(false)
       }
-    } catch (error) {
-      console.error(error)
+    } catch {
       alert("Erro ao conectar com o servidor.")
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-      <div className="w-full max-w-md glass p-8 rounded-3xl space-y-8 border border-white/10 relative overflow-hidden">
-        {/* Glow effect */}
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-secondary/20 rounded-full blur-3xl pointer-events-none"></div>
-        
-        <div className="flex justify-center">
-          <div className="bg-primary/20 p-4 rounded-full">
-            <Lock className="w-10 h-10 text-primary" />
+    <div className="relative flex min-h-screen flex-col items-center justify-center p-6 bg-black overflow-hidden">
+      {/* Background glows */}
+      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-emerald-500/12 rounded-full blur-[140px]" />
+      <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] h-[300px] bg-primary/8 rounded-full blur-[120px]" />
+
+      <div className="relative z-10 w-full max-w-sm space-y-6">
+
+        {/* Logo + Header */}
+        <div className="text-center space-y-3">
+          <div className="flex justify-center">
+            <div className="relative w-12 h-12 rounded-2xl overflow-hidden bg-white/5 border border-white/10 p-1.5">
+              <Image src="/logo.png" alt="Finchat" fill className="object-contain p-0.5" priority />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-white">Acesso Exclusivo</h1>
+            <p className="text-sm text-zinc-500 mt-1">
+              Assine o Finchat e organize suas finanças com IA
+            </p>
           </div>
         </div>
 
-        <div className="space-y-2 relative z-10">
-          <h1 className="text-3xl font-extrabold tracking-tight">
-            Acesso Exclusivo
-          </h1>
-          <p className="text-muted-foreground">
-            O Finchat é uma ferramenta premium. Assine para organizar suas finanças com Inteligência Artificial.
-          </p>
+        {/* Features */}
+        <div className="bg-zinc-900/60 border border-white/8 rounded-2xl p-4 space-y-3">
+          {[
+            { icon: Sparkles, text: "Controle financeiro via Chat com IA" },
+            { icon: TrendingUp, text: "Dashboards e relatórios automáticos" },
+            { icon: CheckCircle2, text: "Objetivos e metas financeiras" },
+            { icon: ShieldCheck, text: "Seus dados seguros na nuvem" },
+          ].map(({ icon: Icon, text }) => (
+            <div key={text} className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-3.5 h-3.5 text-emerald-400" />
+              </div>
+              <span className="text-sm text-zinc-300">{text}</span>
+            </div>
+          ))}
         </div>
 
-        <div className="bg-black/20 rounded-2xl p-6 text-left space-y-4 relative z-10">
-          <div className="flex items-center gap-3">
-            <Sparkles className="text-primary w-5 h-5 flex-shrink-0" />
-            <span className="text-sm font-medium">Controle financeiro via Chat com IA</span>
+        {/* Pricing cards */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Card 1: À vista */}
+          <div className="relative bg-zinc-900/80 border border-white/10 rounded-2xl p-4 flex flex-col items-center text-center backdrop-blur-xl hover:border-white/20 transition-all">
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest bg-white/5 border border-white/10 px-2 py-1 rounded-md mb-2.5">
+              À vista
+            </span>
+            <span className="text-2xl font-extrabold text-white leading-none">R$ 69,90</span>
+            <span className="text-xs text-zinc-500 mt-1">no PIX ou cartão</span>
           </div>
-          <div className="flex items-center gap-3">
-            <TrendingUp className="text-primary w-5 h-5 flex-shrink-0" />
-            <span className="text-sm font-medium">Dashboards automáticos e inteligentes</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="text-primary w-5 h-5 flex-shrink-0" />
-            <span className="text-sm font-medium">Seus dados seguros na nuvem</span>
+
+          {/* Card 2: Parcelado */}
+          <div className="relative bg-emerald-950/50 border border-emerald-500/40 rounded-2xl p-4 flex flex-col items-center text-center backdrop-blur-xl overflow-hidden hover:border-emerald-500/60 transition-all">
+            {/* + popular badge */}
+            <div className="absolute -top-px left-1/2 -translate-x-1/2">
+              <span className="text-[9px] font-bold text-black bg-emerald-400 px-2 py-0.5 rounded-b-md tracking-wide uppercase whitespace-nowrap">
+                + popular
+              </span>
+            </div>
+            <div className="absolute -bottom-2 -right-2 opacity-10">
+              <Zap className="w-14 h-14 text-emerald-400" />
+            </div>
+            <span className="relative z-10 text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-400/10 border border-emerald-400/20 px-2 py-1 rounded-md mb-2.5">
+              Parcelado
+            </span>
+            <span className="relative z-10 text-2xl font-extrabold text-white leading-none">R$ 7,11</span>
+            <span className="relative z-10 text-xs text-emerald-400/80 mt-1">/mês no cartão</span>
           </div>
         </div>
 
-        <div className="space-y-4 relative z-10">
-          <div className="flex items-end justify-center gap-1">
-            <span className="text-4xl font-extrabold">R$ 69,90</span>
-            <span className="text-muted-foreground pb-1">/ ano</span>
-          </div>
-
-          <Button 
-            size="lg" 
-            className="w-full rounded-full shadow-lg shadow-primary/25 text-lg font-bold h-14"
+        {/* CTA button */}
+        <div className="space-y-3">
+          <button
             onClick={handleSubscribe}
             disabled={loading || verifying}
+            className="w-full h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-70 disabled:cursor-not-allowed text-black font-bold text-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_40px_-8px_rgba(52,211,153,0.5)] flex items-center justify-center gap-2"
           >
             {verifying ? (
-              <span className="flex items-center gap-2">
-                <RefreshCcw className="w-5 h-5 animate-spin" /> Pagamento Aprovado!
-              </span>
-            ) : loading ? "Processando..." : "Assinar Plano Anual"}
-          </Button>
-          
-          <p className="text-xs text-muted-foreground text-center">
-            {verifying ? "Redirecionando para o aplicativo..." : "Pagamento 100% seguro processado pelo Mercado Pago."}
+              <>
+                <RefreshCcw className="w-5 h-5 animate-spin" />
+                Pagamento confirmado!
+              </>
+            ) : loading ? (
+              <>
+                <RefreshCcw className="w-5 h-5 animate-spin" />
+                Abrindo pagamento...
+              </>
+            ) : (
+              "Assinar agora →"
+            )}
+          </button>
+
+          <p className="text-center text-xs text-zinc-600">
+            {verifying
+              ? "Redirecionando para o aplicativo..."
+              : "Pagamento 100% seguro via Mercado Pago"}
           </p>
         </div>
+
       </div>
     </div>
   )

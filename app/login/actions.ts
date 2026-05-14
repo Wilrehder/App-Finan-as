@@ -8,8 +8,6 @@ import { createClient } from "@/utils/supabase/server"
 export async function login(formData: FormData) {
   const supabase = await createClient()
 
-  // type-casting here for convenience
-  // in practice, you should validate your inputs
   const data = {
     email: formData.get("email") as string,
     password: formData.get("password") as string,
@@ -22,7 +20,8 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath("/", "layout")
-  redirect("/chat")
+  // Middleware redireciona para /chat se já tiver subscription_status active
+  redirect("/assinatura")
 }
 
 export async function signup(formData: FormData) {
@@ -45,7 +44,8 @@ export async function signup(formData: FormData) {
   }
 
   revalidatePath("/", "layout")
-  redirect("/chat")
+  // Middleware redireciona para /chat se já tiver subscription_status active
+  redirect("/assinatura")
 }
 
 export async function logout() {
@@ -57,12 +57,12 @@ export async function logout() {
 export async function signInWithGoogle() {
   const supabase = await createClient()
   const headersList = await headers()
-  const host = headersList.get('host')
-  const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https'
+  const host = headersList.get("host")
+  const protocol = process.env.NODE_ENV === "development" ? "http" : "https"
   const origin = `${protocol}://${host}`
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
+  const { data } = await supabase.auth.signInWithOAuth({
+    provider: "google",
     options: {
       redirectTo: `${origin}/auth/callback`,
     },

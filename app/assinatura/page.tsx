@@ -96,7 +96,7 @@ export default function AssinaturaPage() {
               À vista
             </span>
             <span className="text-2xl font-extrabold text-white leading-none">R$ 69,90</span>
-            <span className="text-xs text-zinc-500 mt-1">no PIX ou cartão</span>
+            <span className="text-xs text-zinc-500 mt-1 leading-tight">anualidade no PIX ou cartão</span>
           </div>
 
           {/* Card 2: Parcelado */}

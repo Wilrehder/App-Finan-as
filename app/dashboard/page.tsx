@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ArrowUpIcon, ArrowDownIcon, PieChart, TrendingUp, Calendar, ChevronRight } from "lucide-react"
 import { ExportPdfButton } from "@/components/export-pdf-button"
 import { NotificationBell } from "@/components/notification-bell"
-import { NotificationOnboardingModal } from "@/components/notification-onboarding-modal"
 import { TransactionList } from "@/components/transaction-list"
 import { FinInsights } from "@/components/fin-insights"
 import Link from "next/link"
@@ -35,8 +34,6 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
 
   return (
     <div className="flex flex-col min-h-screen p-4 pb-24 space-y-6 animate-in fade-in duration-500 pt-8">
-      {/* Modal de onboarding de notificações — aparece 1 vez após o primeiro login */}
-      <NotificationOnboardingModal />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Painel Financeiro</h1>

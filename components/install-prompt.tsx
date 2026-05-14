@@ -14,9 +14,6 @@ export function InstallPrompt() {
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault()
       setDeferredPrompt(e)
-      if (!localStorage.getItem('pwaPromptDismissed')) {
-        setShowPrompt(true)
-      }
     })
 
     const userAgent = window.navigator.userAgent.toLowerCase()
@@ -26,8 +23,20 @@ export function InstallPrompt() {
     const isStand = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone
     setIsStandalone(isStand)
 
-    if (!isStand && isIosDevice && !localStorage.getItem('pwaPromptDismissed')) {
-      setTimeout(() => setShowPrompt(true), 2000) // Delay to not jump scare
+    // Escuta o sinal de "onboarding-step-install" para mostrar
+    const handleShow = () => {
+      // Se já foi dispensado antes OU já está em standalone, pula direto
+      if (localStorage.getItem('pwaPromptDismissed') || isStand) {
+        window.dispatchEvent(new Event('onboarding-step-notifications'))
+        return
+      }
+      setShowPrompt(true)
+    }
+
+    window.addEventListener('onboarding-step-install', handleShow)
+
+    return () => {
+      window.removeEventListener('onboarding-step-install', handleShow)
     }
   }, [])
 
@@ -38,7 +47,7 @@ export function InstallPrompt() {
       deferredPrompt.prompt()
       const { outcome } = await deferredPrompt.userChoice
       if (outcome === 'accepted') {
-        setShowPrompt(false)
+        dismiss()
       }
       setDeferredPrompt(null)
     }
@@ -47,6 +56,8 @@ export function InstallPrompt() {
   const dismiss = () => {
     localStorage.setItem('pwaPromptDismissed', 'true')
     setShowPrompt(false)
+    // Avança para o próximo passo: notificações
+    window.dispatchEvent(new Event('onboarding-step-notifications'))
   }
 
   return (

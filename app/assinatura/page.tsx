@@ -2,13 +2,21 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { ShieldCheck, Sparkles, TrendingUp, RefreshCcw, Zap, CheckCircle2 } from "lucide-react"
+import { ShieldCheck, Sparkles, TrendingUp, RefreshCcw, Zap, CheckCircle2, LogOut } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
 
 export default function AssinaturaPage() {
   const [loading, setLoading] = useState(false)
   const [verifying, setVerifying] = useState(false)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const supabase = createClient()
+
+  // Buscar email do usuário logado
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserEmail(user?.email ?? null)
+    })
+  }, [supabase])
 
   // Polling: detecta quando o webhook do Mercado Pago liberar o acesso
   useEffect(() => {
@@ -137,6 +145,25 @@ export default function AssinaturaPage() {
               ? "Redirecionando para o aplicativo..."
               : "Pagamento 100% seguro via Mercado Pago"}
           </p>
+        </div>
+
+        {/* Logged in as + Logout */}
+        <div className="flex items-center justify-center gap-2 pt-2">
+          {userEmail && (
+            <span className="text-xs text-zinc-600 truncate max-w-[200px]">
+              {userEmail}
+            </span>
+          )}
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut()
+              window.location.href = "/login"
+            }}
+            className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400 transition-colors"
+          >
+            <LogOut className="w-3 h-3" />
+            Sair
+          </button>
         </div>
 
       </div>

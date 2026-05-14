@@ -10,6 +10,7 @@ import { transcribeAudio } from "./audio-actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { NotificationBellClient } from "@/components/notification-bell-client"
+import { NotificationOnboardingModal } from "@/components/notification-onboarding-modal"
 
 type MessageOption = {
   label: string;
@@ -298,6 +299,16 @@ export default function ChatPage() {
       } catch (e) {}
     }
     setIsLoaded(true)
+
+    // Inicia a cadeia de onboarding no primeiro acesso ao chat
+    // Sequência: Install prompt → Notificações → Tutorial
+    const onboardingStarted = localStorage.getItem('finchat_onboarding_started')
+    if (!onboardingStarted) {
+      localStorage.setItem('finchat_onboarding_started', 'true')
+      setTimeout(() => {
+        window.dispatchEvent(new Event('onboarding-step-install'))
+      }, 1500)
+    }
   }, [])
 
   useEffect(() => {
@@ -549,6 +560,8 @@ export default function ChatPage() {
   }
 
   return (
+    <>
+    <NotificationOnboardingModal />
     <div className="chat-main-container fixed inset-0 bottom-[80px] max-w-md mx-auto flex flex-col">
       {/* Header Fixo */}
       <div className="px-6 py-4 flex items-center justify-between bg-background/80 backdrop-blur-lg border-b border-white/5 shrink-0 z-50">
@@ -837,5 +850,6 @@ export default function ChatPage() {
         </div>
       )}
     </div>
+    </>
   )
 }

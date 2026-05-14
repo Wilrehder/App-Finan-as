@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, BellOff, X, Loader2 } from 'lucide-react';
+import { Bell, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -22,26 +22,34 @@ const STORAGE_KEY = 'atlas_notif_onboarding_done';
 export function NotificationOnboardingModal() {
   const [show, setShow] = useState(false);
   const [working, setWorking] = useState(false);
-  const [done, setDone] = useState(false); // sucesso
+  const [done, setDone] = useState(false);
 
   useEffect(() => {
-    // Só mostra se:
-    // 1. Browser suporta notificações
-    // 2. Permissão ainda não foi decidida (não granted nem denied)
-    // 3. Usuário ainda não viu este modal (localStorage)
-    const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
-    if (!supported) return;
-    if (Notification.permission !== 'default') return;
-    if (localStorage.getItem(STORAGE_KEY)) return;
+    const handleShow = () => {
+      // Só mostra se:
+      // 1. Browser suporta notificações
+      // 2. Permissão ainda não foi decidida (não granted nem denied)
+      // 3. Usuário ainda não viu este modal (localStorage)
+      const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+      if (!supported || Notification.permission !== 'default' || localStorage.getItem(STORAGE_KEY)) {
+        // Pula para o próximo passo: tutorial
+        window.dispatchEvent(new Event('onboarding-step-tour'));
+        return;
+      }
+      setShow(true);
+    };
 
-    // Pequeno delay para o app terminar de carregar antes de mostrar o modal
-    const timer = setTimeout(() => setShow(true), 1200);
-    return () => clearTimeout(timer);
+    window.addEventListener('onboarding-step-notifications', handleShow);
+    return () => {
+      window.removeEventListener('onboarding-step-notifications', handleShow);
+    };
   }, []);
 
   const dismiss = () => {
     localStorage.setItem(STORAGE_KEY, 'dismissed');
     setShow(false);
+    // Avança para o próximo passo: tutorial
+    window.dispatchEvent(new Event('onboarding-step-tour'));
   };
 
   const handleAllow = async () => {
@@ -52,6 +60,7 @@ export function NotificationOnboardingModal() {
 
       if (perm !== 'granted') {
         setShow(false);
+        window.dispatchEvent(new Event('onboarding-step-tour'));
         return;
       }
 
@@ -71,11 +80,15 @@ export function NotificationOnboardingModal() {
       });
 
       setDone(true);
-      // Fecha o modal após 2s mostrando o sucesso
-      setTimeout(() => setShow(false), 2000);
+      // Fecha o modal após 2s mostrando o sucesso, depois avança
+      setTimeout(() => {
+        setShow(false);
+        window.dispatchEvent(new Event('onboarding-step-tour'));
+      }, 2000);
     } catch {
       localStorage.setItem(STORAGE_KEY, 'done');
       setShow(false);
+      window.dispatchEvent(new Event('onboarding-step-tour'));
     } finally {
       setWorking(false);
     }

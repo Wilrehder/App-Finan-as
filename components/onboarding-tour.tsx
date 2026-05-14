@@ -11,19 +11,21 @@ export function OnboardingTour() {
   const router = useRouter();
 
   useEffect(() => {
-    // Only run on the main /chat page to ensure elements exist
-    if (pathname === "/chat") {
-      const hasCompleted = localStorage.getItem("finchat_tour_completed");
-      if (!hasCompleted) {
-        // Small delay to let the page render completely
-        setTimeout(() => setRun(true), 1000);
+    // Escuta o sinal para iniciar o tour (disparado após install prompt + notificações)
+    const handleStartTour = () => {
+      if (pathname === "/chat") {
+        const hasCompleted = localStorage.getItem("finchat_tour_completed");
+        if (!hasCompleted) {
+          setTimeout(() => setRun(true), 500);
+        }
       }
-    }
+    };
+
+    window.addEventListener('onboarding-step-tour', handleStartTour);
 
     const handleRestart = () => {
       if (pathname !== "/chat") {
         router.push("/chat");
-        // Save a temporary flag to start when we reach chat
         localStorage.setItem("finchat_tour_pending", "true");
       } else {
         localStorage.removeItem("finchat_tour_completed");
@@ -43,6 +45,7 @@ export function OnboardingTour() {
     }
 
     return () => {
+      window.removeEventListener('onboarding-step-tour', handleStartTour);
       window.removeEventListener("restart-tour", handleRestart);
     };
   }, [pathname, router]);

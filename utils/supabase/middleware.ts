@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/cadastro')
+  const isAuthPage = (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/cadastro')) && !request.nextUrl.pathname.startsWith('/cadastro/verificar')
   const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/chat') || request.nextUrl.pathname.startsWith('/configuracoes') || request.nextUrl.pathname.startsWith('/calendario') || request.nextUrl.pathname.startsWith('/objetivos')
   const isAssinaturaPage = request.nextUrl.pathname.startsWith('/assinatura')
 

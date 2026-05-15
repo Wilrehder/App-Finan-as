@@ -39,10 +39,14 @@ export async function signup(formData: FormData) {
 
   const { error } = await supabase.auth.signUp(data)
 
+  console.log("SIGNUP RESULT:", { error, email: data.email })
+
   if (error) {
+    console.log("SIGNUP ERROR, REDIRECTING TO /cadastro")
     redirect("/cadastro?error=" + encodeURIComponent(error.message))
   }
 
+  console.log("SIGNUP SUCCESS, REDIRECTING TO VERIFICAR")
   revalidatePath("/", "layout")
   // Redireciona para verificação OTP
   redirect("/cadastro/verificar?email=" + encodeURIComponent(data.email))

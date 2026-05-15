@@ -31,7 +31,7 @@ function ResendButton() {
 }
 
 export function OtpForm({ email, error, message }: { email: string, error?: string, message?: string }) {
-  const [otp, setOtp] = useState(["", "", "", "", "", ""])
+  const [otp, setOtp] = useState(["", "", "", "", "", "", "", ""])
   const [countdown, setCountdown] = useState(60)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -57,7 +57,7 @@ export function OtpForm({ email, error, message }: { email: string, error?: stri
     newOtp[index] = value
     setOtp(newOtp)
 
-    if (value !== "" && index < 5) {
+    if (value !== "" && index < 7) {
       inputRefs.current[index + 1]?.focus()
     }
   }
@@ -70,14 +70,14 @@ export function OtpForm({ email, error, message }: { email: string, error?: stri
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault()
-    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 8)
     if (pastedData) {
       const newOtp = [...otp]
       for (let i = 0; i < pastedData.length; i++) {
         newOtp[i] = pastedData[i]
       }
       setOtp(newOtp)
-      const nextFocus = Math.min(pastedData.length, 5)
+      const nextFocus = Math.min(pastedData.length, 7)
       inputRefs.current[nextFocus]?.focus()
     }
   }
@@ -104,7 +104,7 @@ export function OtpForm({ email, error, message }: { email: string, error?: stri
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               onPaste={handlePaste}
-              className="w-11 h-14 text-center text-xl font-bold bg-white/5 border border-white/10 rounded-xl text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 focus:bg-white/10 transition-all outline-none sm:w-12"
+              className="w-9 h-12 text-center text-lg font-bold bg-white/5 border border-white/10 rounded-xl text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 focus:bg-white/10 transition-all outline-none sm:w-10"
             />
           ))}
         </div>

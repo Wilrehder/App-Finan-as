@@ -44,8 +44,8 @@ export async function signup(formData: FormData) {
   }
 
   revalidatePath("/", "layout")
-  // Middleware redireciona para /chat se já tiver subscription_status active
-  redirect("/assinatura")
+  // Redireciona para verificação OTP
+  redirect("/cadastro/verificar?email=" + encodeURIComponent(data.email))
 }
 
 export async function logout() {
@@ -72,3 +72,51 @@ export async function signInWithGoogle() {
     redirect(data.url)
   }
 }
+
+export async function verifyOtp(formData: FormData) {
+  const supabase = await createClient()
+  const email = formData.get("email") as string
+  const token = formData.get("code") as string
+
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "signup",
+  })
+
+  if (error) {
+    redirect(
+      `/cadastro/verificar?email=${encodeURIComponent(
+        email
+      )}&error=${encodeURIComponent("Código inválido ou expirado. Tente novamente.")}`
+    )
+  }
+
+  revalidatePath("/", "layout")
+  redirect("/assinatura")
+}
+
+export async function resendOtp(formData: FormData) {
+  const supabase = await createClient()
+  const email = formData.get("email") as string
+
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+  })
+
+  if (error) {
+    redirect(
+      `/cadastro/verificar?email=${encodeURIComponent(
+        email
+      )}&error=${encodeURIComponent(error.message)}`
+    )
+  }
+
+  redirect(
+    `/cadastro/verificar?email=${encodeURIComponent(
+      email
+    )}&message=${encodeURIComponent("Código reenviado com sucesso!")}`
+  )
+}
+

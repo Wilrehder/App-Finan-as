@@ -90,7 +90,7 @@ export function OtpForm({ email, error, message }: { email: string, error?: stri
         <input type="hidden" name="email" value={email} />
         <input type="hidden" name="code" value={otp.join("")} />
         
-        <div className="flex justify-between gap-2">
+        <div className="flex justify-between gap-1 sm:gap-1.5">
           {otp.map((digit, index) => (
             <input
               key={index}
@@ -104,7 +104,7 @@ export function OtpForm({ email, error, message }: { email: string, error?: stri
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               onPaste={handlePaste}
-              className="w-9 h-12 text-center text-lg font-bold bg-white/5 border border-white/10 rounded-xl text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 focus:bg-white/10 transition-all outline-none sm:w-10"
+              className="w-8 h-12 text-center text-lg font-bold bg-white/5 border border-white/10 rounded-xl text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 focus:bg-white/10 transition-all outline-none sm:w-10 sm:h-14 sm:text-xl"
             />
           ))}
         </div>

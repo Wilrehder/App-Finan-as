@@ -33,7 +33,7 @@ export default function VerificarPage(props: { searchParams: Promise<{ email?: s
                 <div>
                     <h1 className="text-2xl font-extrabold tracking-tight text-white">Verifique seu e-mail</h1>
                     <p className="text-sm text-zinc-400 mt-2">
-                        Enviamos um código de 6 dígitos para<br />
+                        Enviamos um código de 8 dígitos para<br />
                         <span className="text-emerald-400 font-medium">{email}</span>
                     </p>
                 </div>

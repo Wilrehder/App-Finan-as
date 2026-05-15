@@ -151,7 +151,7 @@ export default function LandingPage() {
               href="/cadastro"
               className="inline-block px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg rounded-2xl transition-all duration-200 hover:scale-105 active:scale-[0.98] shadow-[0_0_40px_-8px_rgba(52,211,153,0.4)]"
             >
-              Criar minha conta grátis →
+              Começar agora →
             </Link>
           </div>
         </section>

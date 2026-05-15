@@ -68,9 +68,6 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            <p className="text-xs text-zinc-600">
-              Sem compromisso. Configure em menos de 2 minutos.
-            </p>
           </div>
         </section>
 

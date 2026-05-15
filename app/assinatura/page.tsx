@@ -113,7 +113,7 @@ export default function AssinaturaPage() {
             <span className="relative z-10 text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-400/10 border border-emerald-400/20 px-2 py-1 rounded-md mb-2.5">
               Parcelado
             </span>
-            <span className="relative z-10 text-2xl font-extrabold text-white leading-none">R$ 7,11</span>
+            <span className="relative z-10 text-xl font-extrabold text-white leading-none">12x de R$ 7,11</span>
             <span className="relative z-10 text-xs text-emerald-400/80 mt-1">/mês no cartão</span>
           </div>
         </div>

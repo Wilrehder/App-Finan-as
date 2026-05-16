@@ -79,7 +79,7 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
         }
 
         // IMPORTANTE: guardar a MESMA instância para usar no createCardToken
-        const fields = mp.fields()
+        const fields = mp.fields
         fieldsRef.current = fields
 
         const style = { color: "#e4e4e7", placeholderColor: "#52525b", fontSize: "15px" }

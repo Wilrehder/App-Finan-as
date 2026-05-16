@@ -53,8 +53,14 @@ export async function updateSession(request: NextRequest) {
     const status = user.user_metadata?.subscription_status
     hasAccess = status === 'active' || status === 'trial'
     
-    if (status === 'cancelled' && user.user_metadata?.trial_expires_at) {
-      if (new Date(user.user_metadata.trial_expires_at) > new Date()) {
+    if (status === 'cancelled') {
+      const trialExpires = user.user_metadata?.trial_expires_at
+      const subExpires = user.user_metadata?.subscription_expires_at
+      
+      if (trialExpires && new Date(trialExpires) > new Date()) {
+        hasAccess = true
+      }
+      if (subExpires && new Date(subExpires) > new Date()) {
         hasAccess = true
       }
     }
@@ -72,10 +78,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && isAssinaturaPage && hasAccess) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/chat'
-    return NextResponse.redirect(url)
+  if (user && isAssinaturaPage) {
+    const status = user.user_metadata?.subscription_status
+    if (status === 'active' || status === 'trial') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/chat'
+      return NextResponse.redirect(url)
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're

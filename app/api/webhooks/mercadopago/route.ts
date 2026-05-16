@@ -70,14 +70,19 @@ export async function POST(req: Request) {
         const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(userId)
         const currentPlanType = user?.user_metadata?.plan_type || 'yearly'
 
+        // Calcula a expiração baseada no tipo de plano
+        const daysToAdd = currentPlanType === 'monthly' ? 31 : 365
+        const subscriptionExpiresAt = new Date(Date.now() + daysToAdd * 24 * 60 * 60 * 1000).toISOString()
+
         // Pagamento aprovado → assinatura ativa (trial terminou e cobrou, ou pagamento à vista)
         await supabaseAdmin.auth.admin.updateUserById(userId, {
           user_metadata: { 
             subscription_status: 'active',
-            plan_type: currentPlanType
+            plan_type: currentPlanType,
+            subscription_expires_at: subscriptionExpiresAt
           },
         })
-        console.log(`Usuário ${userId} → status: active (pagamento aprovado: R$ ${payment.transaction_amount})`)
+        console.log(`Usuário ${userId} → status: active (pagamento aprovado: R$ ${payment.transaction_amount}) - Expira em: ${subscriptionExpiresAt}`)
       } else if (payment.status === 'rejected' || payment.status === 'cancelled') {
         console.log(`Pagamento ${dataId} rejeitado/cancelado para usuário ${userId}`)
         // Não altera o status — deixa o próprio MP tentar novamente (retry automático)

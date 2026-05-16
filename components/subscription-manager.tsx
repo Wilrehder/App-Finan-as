@@ -8,10 +8,11 @@ interface SubscriptionManagerProps {
   status: string
   planType: string
   trialExpiresAt: string | null
+  subscriptionExpiresAt: string | null
   mpSubscriptionId: string | null
 }
 
-export function SubscriptionManager({ status, planType, trialExpiresAt, mpSubscriptionId }: SubscriptionManagerProps) {
+export function SubscriptionManager({ status, planType, trialExpiresAt, subscriptionExpiresAt, mpSubscriptionId }: SubscriptionManagerProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -67,24 +68,39 @@ export function SubscriptionManager({ status, planType, trialExpiresAt, mpSubscr
   } else if (isActive) {
     title = `Assinatura ${planType === "monthly" ? "Mensal" : planType === "yearly" ? "Anual" : "Ativa"}`
     color = "text-emerald-500"
+    
+    let daysStr = ""
+    if (subscriptionExpiresAt) {
+      const expirationDate = new Date(subscriptionExpiresAt)
+      const diffDays = Math.ceil((expirationDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      if (diffDays > 0) {
+        daysStr = ` (Renova/Expira em ${diffDays} dias)`
+      } else if (diffDays === 0) {
+        daysStr = ` (Renova/Expira hoje)`
+      }
+    }
+
     if (mpSubscriptionId) {
       canCancel = true
-      description = "Sua conta premium está ativa e a renovação é automática."
+      description = `Sua conta premium está ativa e a renovação é automática.${daysStr}`
     } else {
       canCancel = false
-      description = "Sua conta premium anual está ativa (Pagamento Único/PIX)."
+      description = `Sua conta premium anual está ativa (Pagamento Único/PIX).${daysStr}`
     }
   } else if (isCancelled) {
     title = "Cancelada"
     color = "text-red-400"
     description = "Sua assinatura foi cancelada."
-    if (trialExpiresAt) {
-      const expirationDate = new Date(trialExpiresAt)
+    
+    // Se foi cancelada, pode ser que tenha tempo de trial ou tempo de assinatura normal
+    const relevantDate = trialExpiresAt || subscriptionExpiresAt
+    if (relevantDate) {
+      const expirationDate = new Date(relevantDate)
       const diffDays = Math.ceil((expirationDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
       if (diffDays > 0) {
-        description = `Assinatura cancelada. Você ainda tem acesso grátis por mais ${diffDays} dia(s).`
+        description = `Assinatura cancelada. Você ainda tem acesso premium por mais ${diffDays} dia(s).`
       } else if (diffDays === 0) {
-        description = "Assinatura cancelada. Você ainda tem acesso grátis até o fim de hoje."
+        description = "Assinatura cancelada. Você ainda tem acesso premium até o fim de hoje."
       } else {
         description = "Sua assinatura foi cancelada e seu acesso expirou."
       }

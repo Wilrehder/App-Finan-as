@@ -69,7 +69,7 @@ export default async function ConfiguracoesPage() {
           <CardContent>
             <SubscriptionManager 
               status={user?.user_metadata?.subscription_status || "inactive"} 
-              planType={user?.user_metadata?.plan_type || "monthly"} 
+              planType={user?.user_metadata?.plan_type || "manual"} 
               trialExpiresAt={user?.user_metadata?.trial_expires_at || null} 
               subscriptionExpiresAt={user?.user_metadata?.subscription_expires_at || null}
               mpSubscriptionId={user?.user_metadata?.mp_subscription_id || null}

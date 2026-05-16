@@ -66,26 +66,33 @@ export function SubscriptionManager({ status, planType, trialExpiresAt, subscrip
       }
     }
   } else if (isActive) {
-    title = `Assinatura ${planType === "monthly" ? "Mensal" : planType === "yearly" ? "Anual" : "Ativa"}`
-    color = "text-emerald-500"
-    
-    let daysStr = ""
-    if (subscriptionExpiresAt) {
-      const expirationDate = new Date(subscriptionExpiresAt)
-      const diffDays = Math.ceil((expirationDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-      if (diffDays > 0) {
-        daysStr = ` (Renova/Expira em ${diffDays} dias)`
-      } else if (diffDays === 0) {
-        daysStr = ` (Renova/Expira hoje)`
-      }
-    }
-
-    if (mpSubscriptionId) {
-      canCancel = true
-      description = `Sua conta premium está ativa e a renovação é automática.${daysStr}`
-    } else {
+    if (planType === "manual") {
+      title = "Acesso Especial (Vitalício)"
+      color = "text-emerald-500"
       canCancel = false
-      description = `Sua conta premium anual está ativa (Pagamento Único/PIX).${daysStr}`
+      description = "Sua conta premium possui acesso administrativo ilimitado."
+    } else {
+      title = `Assinatura ${planType === "monthly" ? "Mensal" : planType === "yearly" ? "Anual" : "Ativa"}`
+      color = "text-emerald-500"
+      
+      let daysStr = ""
+      if (subscriptionExpiresAt) {
+        const expirationDate = new Date(subscriptionExpiresAt)
+        const diffDays = Math.ceil((expirationDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        if (diffDays > 0) {
+          daysStr = ` (Renova/Expira em ${diffDays} dias)`
+        } else if (diffDays === 0) {
+          daysStr = ` (Renova/Expira hoje)`
+        }
+      }
+
+      if (mpSubscriptionId) {
+        canCancel = true
+        description = `Sua conta premium está ativa e a renovação é automática.${daysStr}`
+      } else {
+        canCancel = false
+        description = `Sua conta premium anual está ativa (Pagamento Único/PIX).${daysStr}`
+      }
     }
   } else if (isCancelled) {
     title = "Cancelada"

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Image from "next/image"
 import { CreditCard, Shield, Check, RefreshCcw, AlertCircle, Lock } from "lucide-react"
 
 type PlanType = "monthly" | "annual"
@@ -324,9 +325,17 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
             )}
           </button>
 
-          <p className="text-center text-[10px] text-zinc-600 flex items-center justify-center gap-1">
-            <Lock className="w-3 h-3" />Dados protegidos pelo Mercado Pago
-          </p>
+          <div className="flex items-center justify-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
+            <Lock className="w-3 h-3 text-zinc-500" />
+            <span className="text-[10px] text-zinc-500">Pagamento seguro via</span>
+            <Image 
+              src="/mercado-pago-logo-2-1.png" 
+              alt="Mercado Pago" 
+              width={65} 
+              height={18} 
+              className="object-contain" 
+            />
+          </div>
         </form>
       )}
     </div>

@@ -66,7 +66,18 @@ export function SubscriptionManager({ status, planType, trialExpiresAt }: Subscr
   } else if (isCancelled) {
     title = "Cancelada"
     color = "text-red-400"
-    description = "Sua assinatura foi cancelada e não será renovada."
+    description = "Sua assinatura foi cancelada."
+    if (trialExpiresAt) {
+      const expirationDate = new Date(trialExpiresAt)
+      const diffDays = Math.ceil((expirationDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      if (diffDays > 0) {
+        description = `Assinatura cancelada. Você ainda tem acesso grátis por mais ${diffDays} dia(s).`
+      } else if (diffDays === 0) {
+        description = "Assinatura cancelada. Você ainda tem acesso grátis até o fim de hoje."
+      } else {
+        description = "Sua assinatura foi cancelada e seu acesso expirou."
+      }
+    }
   }
 
   return (

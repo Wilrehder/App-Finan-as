@@ -10,6 +10,8 @@ import { NotificationPreferences } from "@/components/notification-preferences"
 import { getNotificationPreferences } from "@/app/notificacoes/actions"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { RestartTourButton } from "@/components/restart-tour-button"
+import { SubscriptionManager } from "@/components/subscription-manager"
+import { CreditCard } from "lucide-react"
 
 export const revalidate = 30
 
@@ -54,6 +56,22 @@ export default async function ConfiguracoesPage() {
             <ThemeToggle />
             <PushToggle />
             <RestartTourButton />
+          </CardContent>
+        </Card>
+
+        {/* Card de Minha Assinatura */}
+        <Card className="border-none glass">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <CreditCard size={18} /> Minha Assinatura
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SubscriptionManager 
+              status={user?.user_metadata?.subscription_status || "inactive"} 
+              planType={user?.user_metadata?.plan_type || "monthly"} 
+              trialExpiresAt={user?.user_metadata?.trial_expires_at || null} 
+            />
           </CardContent>
         </Card>
 

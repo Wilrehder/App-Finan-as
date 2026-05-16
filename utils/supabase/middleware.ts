@@ -48,23 +48,31 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && isProtectedRoute) {
+  let hasAccess = false
+  if (user) {
     const status = user.user_metadata?.subscription_status
-    if (status !== 'active' && status !== 'trial') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/assinatura'
-      return NextResponse.redirect(url)
+    hasAccess = status === 'active' || status === 'trial'
+    
+    if (status === 'cancelled' && user.user_metadata?.trial_expires_at) {
+      if (new Date(user.user_metadata.trial_expires_at) > new Date()) {
+        hasAccess = true
+      }
     }
   }
 
-  if (user && isAuthPage) {
-    const status = user.user_metadata?.subscription_status
+  if (user && isProtectedRoute && !hasAccess) {
     const url = request.nextUrl.clone()
-    url.pathname = (status === 'active' || status === 'trial') ? '/chat' : '/assinatura'
+    url.pathname = '/assinatura'
     return NextResponse.redirect(url)
   }
 
-  if (user && isAssinaturaPage && (user.user_metadata?.subscription_status === 'active' || user.user_metadata?.subscription_status === 'trial')) {
+  if (user && isAuthPage) {
+    const url = request.nextUrl.clone()
+    url.pathname = hasAccess ? '/chat' : '/assinatura'
+    return NextResponse.redirect(url)
+  }
+
+  if (user && isAssinaturaPage && hasAccess) {
     const url = request.nextUrl.clone()
     url.pathname = '/chat'
     return NextResponse.redirect(url)

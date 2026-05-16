@@ -16,12 +16,16 @@ export default function AssinaturaPage() {
   const [loading, setLoading] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [usedTrial, setUsedTrial] = useState(false)
   const supabase = createClient()
 
   // Buscar email do usuário logado
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUserEmail(user?.email ?? null)
+      if (user?.user_metadata?.trial_start_at) {
+        setUsedTrial(true)
+      }
     })
   }, [supabase])
 
@@ -137,29 +141,33 @@ export default function AssinaturaPage() {
 
             {/* CTA Principal — Trial */}
             <div className="space-y-3">
-              {/* Card de destaque: trial */}
-              <button
-                onClick={() => setView("trial")}
-                className="w-full rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-base transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_40px_-8px_rgba(52,211,153,0.6)] overflow-hidden"
-              >
-                <div className="flex items-center justify-between px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    <Gift className="w-5 h-5" />
-                    <div className="text-left">
-                      <p className="font-extrabold text-sm leading-tight">Começar teste grátis</p>
-                      <p className="text-[11px] font-medium opacity-75">3 dias grátis · cartão exigido</p>
+              {/* Card de destaque: trial (escondido se já usou) */}
+              {!usedTrial && (
+                <>
+                  <button
+                    onClick={() => setView("trial")}
+                    className="w-full rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-base transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_40px_-8px_rgba(52,211,153,0.6)] overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <Gift className="w-5 h-5" />
+                        <div className="text-left">
+                          <p className="font-extrabold text-sm leading-tight">Começar teste grátis</p>
+                          <p className="text-[11px] font-medium opacity-75">3 dias grátis · cartão exigido</p>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-5 h-5 opacity-80" />
                     </div>
-                  </div>
-                  <ArrowRight className="w-5 h-5 opacity-80" />
-                </div>
-              </button>
+                  </button>
 
-              {/* Divider */}
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-white/8" />
-                <span className="text-xs text-zinc-600">ou</span>
-                <div className="flex-1 h-px bg-white/8" />
-              </div>
+                  {/* Divider */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-white/8" />
+                    <span className="text-xs text-zinc-600">ou</span>
+                    <div className="flex-1 h-px bg-white/8" />
+                  </div>
+                </>
+              )}
 
               {/* Opção secundária: assinar direto */}
               <button

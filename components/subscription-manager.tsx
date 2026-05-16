@@ -35,15 +35,20 @@ export function SubscriptionManager({ status, planType, trialExpiresAt }: Subscr
     }
   }
 
-  // Parse details
   let title = "Sem plano ativo"
   let color = "text-zinc-500"
   let description = "Você não possui uma assinatura ativa no momento."
   let canCancel = false
+  let canResubscribe = false
 
   const isTrial = status === "trial"
   const isActive = status === "active"
   const isCancelled = status === "cancelled"
+  const isInactive = status === "inactive" || !status
+
+  if (isInactive) {
+    canResubscribe = true
+  }
 
   if (isTrial) {
     title = `Teste Grátis (${planType === "monthly" ? "Mensal" : "Anual"})`
@@ -76,7 +81,10 @@ export function SubscriptionManager({ status, planType, trialExpiresAt }: Subscr
         description = "Assinatura cancelada. Você ainda tem acesso grátis até o fim de hoje."
       } else {
         description = "Sua assinatura foi cancelada e seu acesso expirou."
+        canResubscribe = true
       }
+    } else {
+      canResubscribe = true
     }
   }
 
@@ -109,6 +117,17 @@ export function SubscriptionManager({ status, planType, trialExpiresAt }: Subscr
           ) : (
             <><XCircle className="w-4 h-4 mr-2" /> Cancelar Assinatura</>
           )}
+        </Button>
+      )}
+
+      {canResubscribe && (
+        <Button 
+          variant="default" 
+          size="sm" 
+          onClick={() => window.location.href = '/assinatura'}
+          className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-semibold"
+        >
+          Assinar Novamente
         </Button>
       )}
     </div>

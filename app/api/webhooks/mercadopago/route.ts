@@ -67,9 +67,15 @@ export async function POST(req: Request) {
       if (!userId) return NextResponse.json({ success: true })
 
       if (payment.status === 'approved') {
+        const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(userId)
+        const currentPlanType = user?.user_metadata?.plan_type || 'yearly'
+
         // Pagamento aprovado → assinatura ativa (trial terminou e cobrou, ou pagamento à vista)
         await supabaseAdmin.auth.admin.updateUserById(userId, {
-          user_metadata: { subscription_status: 'active' },
+          user_metadata: { 
+            subscription_status: 'active',
+            plan_type: currentPlanType
+          },
         })
         console.log(`Usuário ${userId} → status: active (pagamento aprovado: R$ ${payment.transaction_amount})`)
       } else if (payment.status === 'rejected' || payment.status === 'cancelled') {

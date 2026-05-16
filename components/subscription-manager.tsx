@@ -8,9 +8,10 @@ interface SubscriptionManagerProps {
   status: string
   planType: string
   trialExpiresAt: string | null
+  mpSubscriptionId: string | null
 }
 
-export function SubscriptionManager({ status, planType, trialExpiresAt }: SubscriptionManagerProps) {
+export function SubscriptionManager({ status, planType, trialExpiresAt, mpSubscriptionId }: SubscriptionManagerProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -66,8 +67,13 @@ export function SubscriptionManager({ status, planType, trialExpiresAt }: Subscr
   } else if (isActive) {
     title = `Assinatura ${planType === "monthly" ? "Mensal" : planType === "yearly" ? "Anual" : "Ativa"}`
     color = "text-emerald-500"
-    canCancel = true
-    description = "Sua conta premium está ativa."
+    if (mpSubscriptionId) {
+      canCancel = true
+      description = "Sua conta premium está ativa e a renovação é automática."
+    } else {
+      canCancel = false
+      description = "Sua conta premium anual está ativa (Pagamento Único/PIX)."
+    }
   } else if (isCancelled) {
     title = "Cancelada"
     color = "text-red-400"

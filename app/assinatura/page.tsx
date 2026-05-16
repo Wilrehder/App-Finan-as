@@ -182,9 +182,9 @@ export default function AssinaturaPage() {
         )}
 
         {/* ─── VIEW: TRIAL (formulário de cartão) ─── */}
-        {view === "trial" && userEmail && (
+        {view === "trial" && (
           <>
-            <TrialCardForm userEmail={userEmail} onSuccess={handleTrialSuccess} />
+            <TrialCardForm userEmail={userEmail || ""} onSuccess={handleTrialSuccess} />
             <button
               onClick={() => setView("main")}
               className="w-full text-center text-xs text-zinc-600 hover:text-zinc-400 transition-colors py-2"

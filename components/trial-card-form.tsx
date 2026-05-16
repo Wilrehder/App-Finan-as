@@ -55,9 +55,9 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
     document.head.appendChild(script)
   }, [])
 
-  // Monta os campos quando: SDK pronto + checkbox marcado + ainda não montou
+  // Monta os campos quando: SDK pronto + ainda não montou
   useEffect(() => {
-    if (!sdkReady || !accepted || mountedRef.current) return
+    if (!sdkReady || mountedRef.current) return
     mountedRef.current = true
 
     // Aguarda o React pintar os divs no DOM antes de montar os iframes
@@ -95,7 +95,7 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
         setSdkError(true)
       }
     }, 150)
-  }, [sdkReady, accepted])
+  }, [sdkReady])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -204,7 +204,7 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
       )}
 
       {/* Formulário de cartão */}
-      {accepted && !sdkError && (
+      {!sdkError && (
         <form onSubmit={handleSubmit} className="space-y-3">
           <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
             <CreditCard className="w-3.5 h-3.5" />Dados do cartão
@@ -267,13 +267,15 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
 
           <button
             type="submit"
-            disabled={submitting || !fieldsReady}
+            disabled={submitting || !fieldsReady || !accepted}
             className="w-full h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold text-base transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_30px_-8px_rgba(52,211,153,0.5)] flex items-center justify-center gap-2"
           >
             {submitting ? (
               <><RefreshCcw className="w-5 h-5 animate-spin" />Ativando seu teste...</>
             ) : !fieldsReady ? (
               <><RefreshCcw className="w-4 h-4 animate-spin" />Carregando formulário...</>
+            ) : !accepted ? (
+              <><Lock className="w-4 h-4" />Aceite os termos acima</>
             ) : (
               <><Lock className="w-4 h-4" />Começar 3 dias grátis</>
             )}

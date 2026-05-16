@@ -46,7 +46,7 @@ export function SubscriptionManager({ status, planType, trialExpiresAt }: Subscr
   const isCancelled = status === "cancelled"
   const isInactive = status === "inactive" || !status
 
-  if (isInactive) {
+  if (isInactive || isCancelled) {
     canResubscribe = true
   }
 
@@ -81,10 +81,7 @@ export function SubscriptionManager({ status, planType, trialExpiresAt }: Subscr
         description = "Assinatura cancelada. Você ainda tem acesso grátis até o fim de hoje."
       } else {
         description = "Sua assinatura foi cancelada e seu acesso expirou."
-        canResubscribe = true
       }
-    } else {
-      canResubscribe = true
     }
   }
 

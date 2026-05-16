@@ -93,24 +93,25 @@ export default function LandingPage() {
             </p>
 
             {/* CTA */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Link
-                href="/cadastro"
-                className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg rounded-2xl transition-all duration-200 hover:scale-105 active:scale-[0.98] shadow-[0_0_40px_-8px_rgba(52,211,153,0.5)]"
-              >
-                Comece seu teste grátis →
-              </Link>
+            <div className="flex flex-col items-center justify-center gap-4 pt-4">
               <a
                 href="https://instagram.com/finchatoficial"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white font-medium text-lg rounded-2xl transition-all duration-200 hover:scale-105"
+                className="group flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white font-medium text-sm rounded-full transition-all duration-200 hover:scale-105"
               >
-                <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500 flex items-center justify-center p-[3px]">
+                <div className="w-4 h-4 rounded-md bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500 flex items-center justify-center p-[2px]">
                   <InstagramIcon className="w-full h-full text-white" />
                 </div>
-                Conheça nosso projeto
+                @finchatoficial
               </a>
+
+              <Link
+                href="/cadastro"
+                className="w-full sm:w-auto px-10 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xl rounded-2xl transition-all duration-200 hover:scale-105 active:scale-[0.98] shadow-[0_0_40px_-8px_rgba(52,211,153,0.5)]"
+              >
+                Comece seu teste grátis →
+              </Link>
             </div>
 
           </div>

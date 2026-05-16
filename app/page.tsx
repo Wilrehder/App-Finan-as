@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { CheckCircle2, MessageSquare, BarChart2, Target, Zap, ShieldCheck } from "lucide-react"
+import { CheckCircle2, MessageSquare, BarChart2, Target, Zap, ShieldCheck, Instagram } from "lucide-react"
 
 export default function LandingPage() {
   return (
@@ -13,12 +13,23 @@ export default function LandingPage() {
             <Image src="/logo.png" alt="Finchat" width={30} height={30} className="object-contain" />
             Finchat
           </div>
-          <Link
-            href="/login"
-            className="text-sm font-medium text-zinc-400 hover:text-white transition-colors border border-white/10 px-4 py-2 rounded-full hover:border-white/20"
-          >
-            Entrar
-          </Link>
+          <div className="flex items-center gap-4">
+            <a
+              href="https://instagram.com/finchatoficial"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-zinc-400 hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+            >
+              <Instagram className="w-4 h-4" />
+              <span className="hidden sm:inline text-sm font-medium">@finchatoficial</span>
+            </a>
+            <Link
+              href="/login"
+              className="text-sm font-medium text-zinc-400 hover:text-white transition-colors border border-white/10 px-4 py-2 rounded-full hover:border-white/20"
+            >
+              Entrar
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -64,7 +75,7 @@ export default function LandingPage() {
                 href="/cadastro"
                 className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg rounded-2xl transition-all duration-200 hover:scale-105 active:scale-[0.98] shadow-[0_0_40px_-8px_rgba(52,211,153,0.5)]"
               >
-                Começar agora →
+                Comece seu teste grátis →
               </Link>
             </div>
 
@@ -148,7 +159,7 @@ export default function LandingPage() {
               href="/cadastro"
               className="inline-block px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg rounded-2xl transition-all duration-200 hover:scale-105 active:scale-[0.98] shadow-[0_0_40px_-8px_rgba(52,211,153,0.4)]"
             >
-              Começar agora →
+              Comece seu teste grátis →
             </Link>
           </div>
         </section>

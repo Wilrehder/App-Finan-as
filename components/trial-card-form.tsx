@@ -21,6 +21,33 @@ function formatCPF(v: string) {
 
 const fieldBox = "h-12 rounded-xl border border-white/10 bg-zinc-900/80 px-4 flex items-center overflow-hidden"
 
+function translateMpError(err: any): string {
+  if (!err) return "Erro desconhecido. Tente novamente."
+  
+  const mpErrors: Record<string, string> = {
+    "E301": "Número do cartão inválido.",
+    "E302": "Código de segurança (CVV) inválido.",
+    "316": "Nome do titular inválido.",
+    "324": "CPF inválido.",
+    "325": "Mês de vencimento inválido.",
+    "326": "Ano de vencimento inválido.",
+    "CC_VAL_433": "O cartão foi recusado pelo banco ou pelo Mercado Pago. Verifique o limite ou tente outro cartão.",
+    "CC_VAL_434": "A bandeira deste cartão não é suportada.",
+  }
+
+  if (Array.isArray(err)) {
+    return err.map(e => mpErrors[e.code] || mpErrors[e.message] || e.message).join(", ")
+  }
+  
+  const msg = typeof err === 'string' ? err : err.message || ""
+  const codeMatch = msg.match(/(E301|E302|316|324|325|326|CC_VAL_433|CC_VAL_434)/)
+  if (codeMatch && mpErrors[codeMatch[0]]) {
+    return mpErrors[codeMatch[0]]
+  }
+  
+  return mpErrors[msg] || msg || "Verifique os dados do cartão e tente novamente."
+}
+
 export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
   const [plan, setPlan] = useState<PlanType>("monthly")
   const [accepted, setAccepted] = useState(false)
@@ -96,7 +123,7 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
 
       } catch (err: any) {
         console.error("MP mount error:", err)
-        setError("Erro do SDK: " + (err.message || String(err)))
+        setError("Erro do SDK: " + translateMpError(err))
         setSdkError(true)
       }
     }, 200)
@@ -143,36 +170,11 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
       if (data.success) {
         onSuccess()
       } else {
-        setError(data.error || "Erro ao ativar. Tente novamente.")
+        setError(translateMpError(data.error || "Erro ao ativar. Tente novamente."))
         setSubmitting(false)
       }
     } catch (err: any) {
-      // Dicionário de tradução de erros do Mercado Pago
-      const mpErrors: Record<string, string> = {
-        "E301": "Número do cartão inválido.",
-        "E302": "Código de segurança (CVV) inválido.",
-        "316": "Nome do titular inválido.",
-        "324": "CPF inválido.",
-        "325": "Mês de vencimento inválido.",
-        "326": "Ano de vencimento inválido.",
-        "CC_VAL_433": "Cartão não suportado ou dados incorretos. Verifique o número e o CVV.",
-        "CC_VAL_434": "A bandeira deste cartão não é suportada.",
-      }
-
-      let errMsg = "Verifique os dados do cartão e tente novamente."
-      if (Array.isArray(err)) {
-        errMsg = err.map(e => mpErrors[e.code] || mpErrors[e.message] || e.message).join(", ")
-      } else if (err.message) {
-        // Tenta achar pelo código dentro da string de erro, ou traduz direto se bater
-        const codeMatch = err.message.match(/(E301|E302|316|324|325|326|CC_VAL_433|CC_VAL_434)/)
-        if (codeMatch && mpErrors[codeMatch[0]]) {
-          errMsg = mpErrors[codeMatch[0]]
-        } else {
-          errMsg = mpErrors[err.message] || err.message
-        }
-      }
-      
-      setError(errMsg)
+      setError(translateMpError(err))
       setSubmitting(false)
     }
   }

@@ -251,6 +251,15 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
             Dados do cartão
           </p>
 
+          {/* Dica sobre autopreenchimento */}
+          <div className="flex items-start gap-2 bg-amber-950/40 border border-amber-500/25 rounded-xl px-3 py-2.5">
+            <span className="text-amber-400 text-sm flex-shrink-0">⚠️</span>
+            <p className="text-[11px] text-amber-300/80 leading-relaxed">
+              <strong className="text-amber-300">Digite o nome e o CPF manualmente.</strong>{" "}
+              O preenchimento automático do celular pode causar erro de validação nesses campos.
+            </p>
+          </div>
+
           {/* Container do Brick */}
           <div
             className={`transition-opacity duration-300 ${brickMounted ? "opacity-100" : "opacity-0"}`}
@@ -266,6 +275,7 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
           )}
         </div>
       )}
+
 
       {/* Erro */}
       {error && (

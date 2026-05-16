@@ -1,6 +1,27 @@
 import Link from "next/link"
 import Image from "next/image"
-import { CheckCircle2, MessageSquare, BarChart2, Target, Zap, ShieldCheck, Instagram } from "lucide-react"
+import { CheckCircle2, MessageSquare, BarChart2, Target, Zap, ShieldCheck } from "lucide-react"
+
+function InstagramIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  )
+}
 
 export default function LandingPage() {
   return (
@@ -20,7 +41,7 @@ export default function LandingPage() {
               rel="noopener noreferrer"
               className="text-zinc-400 hover:text-emerald-400 transition-colors flex items-center gap-1.5"
             >
-              <Instagram className="w-4 h-4" />
+              <InstagramIcon className="w-4 h-4" />
               <span className="hidden sm:inline text-sm font-medium">@finchatoficial</span>
             </a>
             <Link

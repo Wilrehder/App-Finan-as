@@ -19,7 +19,7 @@ function formatCPF(v: string) {
   return d.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2")
 }
 
-const fieldBox = "h-12 rounded-xl border border-white/10 bg-zinc-900/80 px-4 flex items-center"
+const fieldBox = "h-12 rounded-xl border border-white/10 bg-zinc-900/80 px-4 flex items-center overflow-hidden"
 
 export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
   const [plan, setPlan] = useState<PlanType>("monthly")
@@ -28,49 +28,69 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
   const [fieldsReady, setFieldsReady] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sdkError, setSdkError] = useState(false)
   const [name, setName] = useState("")
   const [cpf, setCpf] = useState("")
   const mpRef = useRef<any>(null)
+  const fieldsRef = useRef<{ cn: any; ex: any; cv: any } | null>(null)
   const mountedRef = useRef(false)
   const planRef = useRef<PlanType>(plan)
 
   useEffect(() => { planRef.current = plan }, [plan])
 
-  // Carrega SDK
+  // Carrega SDK IMEDIATAMENTE ao montar o componente (não espera o checkbox)
   useEffect(() => {
-    if (document.getElementById("mp-sdk")) {
+    const existingScript = document.getElementById("mp-sdk")
+    if (existingScript) {
       if (window.MercadoPago) setSdkReady(true)
+      else existingScript.addEventListener("load", () => setSdkReady(true))
       return
     }
-    const s = document.createElement("script")
-    s.id = "mp-sdk"
-    s.src = "https://sdk.mercadopago.com/js/v2"
-    s.async = true
-    s.onload = () => setSdkReady(true)
-    document.head.appendChild(s)
+    const script = document.createElement("script")
+    script.id = "mp-sdk"
+    script.src = "https://sdk.mercadopago.com/js/v2"
+    script.async = true
+    script.onload = () => setSdkReady(true)
+    script.onerror = () => setSdkError(true)
+    document.head.appendChild(script)
   }, [])
 
-  // Monta campos seguros
+  // Monta os campos quando: SDK pronto + checkbox marcado + ainda não montou
   useEffect(() => {
     if (!sdkReady || !accepted || mountedRef.current) return
     mountedRef.current = true
 
-    const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY || ""
-    const mp = new window.MercadoPago(publicKey, { locale: "pt-BR" })
-    mpRef.current = mp
+    try {
+      const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY || ""
+      if (!publicKey) {
+        setSdkError(true)
+        return
+      }
+      const mp = new window.MercadoPago(publicKey, { locale: "pt-BR" })
+      mpRef.current = mp
 
-    const style = { color: "#e4e4e7", placeholderColor: "#52525b", fontSize: "15px" }
+      const style = { color: "#e4e4e7", placeholderColor: "#52525b", fontSize: "15px" }
 
-    let ready = 0
-    const onReady = () => { ready++; if (ready >= 3) setFieldsReady(true) }
+      let ready = 0
+      const onReady = () => { ready++; if (ready >= 3) setFieldsReady(true) }
+      const onError = (e: any) => {
+        console.error("MP Field error:", e)
+        setError("Erro ao carregar formulário do cartão. Verifique sua conexão.")
+      }
 
-    const cn = mp.fields().create("cardNumber", { style, placeholder: "0000 0000 0000 0000" })
-    const ex = mp.fields().create("expirationDate", { style, placeholder: "MM/AA" })
-    const cv = mp.fields().create("securityCode", { style, placeholder: "CVV" })
+      const cn = mp.fields().create("cardNumber", { style, placeholder: "0000 0000 0000 0000" })
+      const ex = mp.fields().create("expirationDate", { style, placeholder: "MM/AA" })
+      const cv = mp.fields().create("securityCode", { style, placeholder: "CVV" })
 
-    cn.mount("mp-cn"); cn.on("ready", onReady)
-    ex.mount("mp-ex"); ex.on("ready", onReady)
-    cv.mount("mp-cv"); cv.on("ready", onReady)
+      cn.mount("mp-cn"); cn.on("ready", onReady); cn.on("error", onError)
+      ex.mount("mp-ex"); ex.on("ready", onReady); ex.on("error", onError)
+      cv.mount("mp-cv"); cv.on("ready", onReady); cv.on("error", onError)
+
+      fieldsRef.current = { cn, ex, cv }
+    } catch (err: any) {
+      console.error("MP mount error:", err)
+      setError("Não foi possível carregar o formulário. Tente recarregar a página.")
+    }
   }, [sdkReady, accepted])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,23 +102,28 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
     setSubmitting(true)
     setError(null)
     try {
-      const { token, error: tokenErr } = await mpRef.current.fields().createCardToken({
+      const result = await mpRef.current.fields().createCardToken({
         cardholderName: name.trim(),
         identificationType: "CPF",
         identificationNumber: cleanCPF,
       })
-      if (tokenErr) throw new Error(tokenErr.message)
+
+      if (result.error) throw new Error(result.error.message)
 
       const res = await fetch("/api/mercadopago/trial", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ card_token: token, plan_type: planRef.current }),
+        body: JSON.stringify({ card_token: result.token, plan_type: planRef.current }),
       })
       const data = await res.json()
-      if (data.success) { onSuccess() }
-      else { setError(data.error || "Erro ao ativar. Tente novamente."); setSubmitting(false) }
+      if (data.success) {
+        onSuccess()
+      } else {
+        setError(data.error || "Erro ao ativar. Tente novamente.")
+        setSubmitting(false)
+      }
     } catch (err: any) {
-      setError(err.message || "Erro no cartão. Verifique os dados.")
+      setError(err.message || "Verifique os dados do cartão e tente novamente.")
       setSubmitting(false)
     }
   }
@@ -124,7 +149,7 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
               )}
               <span className={`text-[10px] font-bold uppercase tracking-widest ${plan === p ? "text-emerald-400" : "text-zinc-500"}`}>{p === "monthly" ? "Mensal" : "Anual"}</span>
               <p className={`text-lg font-extrabold mt-0.5 leading-none ${plan === p ? "text-white" : "text-zinc-400"}`}>{p === "monthly" ? "R$ 7,11" : "R$ 69,90"}</p>
-              <p className={`text-[10px] mt-0.5 ${plan === p ? "text-emerald-400/80" : "text-zinc-600"}`}>{p === "monthly" ? "/mês no cartão" : "/ano no cartão"}</p>
+              <p className={`text-[10px] mt-0.5 ${plan === p ? "text-emerald-400/80" : "text-zinc-600"}`}>{p === "monthly" ? "/mês" : "/ano"}</p>
             </button>
           ))}
         </div>
@@ -133,15 +158,15 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
       {/* Transparência */}
       <div className="bg-zinc-900/60 border border-white/8 rounded-2xl p-4 space-y-2.5">
         <p className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-          <Shield className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />Como funciona o teste grátis
+          <Shield className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />Como funciona
         </p>
         <ul className="space-y-2">
           {[
             ["3 dias totalmente grátis", " — sem cobrança hoje."],
             ["Após o período", `, cobrado automaticamente ${plan === "monthly" ? "R$ 7,11/mês" : "R$ 69,90/ano"}.`],
             ["Cancele quando quiser", " antes do prazo, sem custo."],
-            ["Cobrança de R$ 1,00 estornada", " para validar seu cartão."],
-            ["Não precisa de conta", " no Mercado Pago."],
+            ["Cobrança de R$ 1,00 estornada", " para validar o cartão."],
+            ["Sem conta no Mercado Pago", " necessária."],
           ].map(([b, r], i) => (
             <li key={i} className="flex items-start gap-2 text-xs text-zinc-400">
               <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
@@ -164,62 +189,69 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
         </span>
       </label>
 
-      {/* Formulário */}
-      {accepted && (
+      {/* Erro do SDK */}
+      {sdkError && (
+        <div className="flex items-start gap-2.5 bg-red-950/50 border border-red-500/30 rounded-2xl p-3.5">
+          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-red-300">Não foi possível carregar o formulário de pagamento. Verifique sua conexão e recarregue a página.</p>
+        </div>
+      )}
+
+      {/* Formulário de cartão */}
+      {accepted && !sdkError && (
         <form onSubmit={handleSubmit} className="space-y-3">
           <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
             <CreditCard className="w-3.5 h-3.5" />Dados do cartão
           </p>
 
-          {/* Número do cartão — iframe seguro MP */}
+          {/* Número */}
           <div>
-            <label className="text-xs text-zinc-500 mb-1 block">Número do cartão</label>
+            <label className="text-xs text-zinc-500 mb-1.5 block">Número do cartão</label>
             <div className={fieldBox}>
-              {!fieldsReady && <RefreshCcw className="w-4 h-4 text-zinc-600 animate-spin" />}
-              <div id="mp-cn" className="flex-1" />
+              {!fieldsReady && <RefreshCcw className="w-4 h-4 text-zinc-600 animate-spin mr-2 flex-shrink-0" />}
+              <div id="mp-cn" className="flex-1 h-full" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">Vencimento</label>
-              <div className={fieldBox}><div id="mp-ex" className="flex-1" /></div>
+              <label className="text-xs text-zinc-500 mb-1.5 block">Vencimento</label>
+              <div className={fieldBox}><div id="mp-ex" className="flex-1 h-full" /></div>
             </div>
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">CVV</label>
-              <div className={fieldBox}><div id="mp-cv" className="flex-1" /></div>
+              <label className="text-xs text-zinc-500 mb-1.5 block">CVV</label>
+              <div className={fieldBox}><div id="mp-cv" className="flex-1 h-full" /></div>
             </div>
           </div>
 
-          {/* Nome — input HTML normal, sem bug de validação */}
+          {/* Nome — input HTML normal */}
           <div>
-            <label className="text-xs text-zinc-500 mb-1 block">Nome no cartão</label>
+            <label className="text-xs text-zinc-500 mb-1.5 block">Nome no cartão</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value.toUpperCase())}
               placeholder="COMO APARECE NO CARTÃO"
-              autoComplete="off"
+              autoComplete="cc-name"
               className="h-12 w-full rounded-xl border border-white/10 bg-zinc-900/80 px-4 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
             />
           </div>
 
           {/* CPF — input HTML normal */}
           <div>
-            <label className="text-xs text-zinc-500 mb-1 block">CPF do titular</label>
+            <label className="text-xs text-zinc-500 mb-1.5 block">CPF do titular</label>
             <input
               type="text"
               value={cpf}
               onChange={e => setCpf(formatCPF(e.target.value))}
               placeholder="000.000.000-00"
-              autoComplete="off"
               inputMode="numeric"
+              autoComplete="off"
               maxLength={14}
               className="h-12 w-full rounded-xl border border-white/10 bg-zinc-900/80 px-4 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
             />
           </div>
 
-          {/* Erro */}
           {error && (
             <div className="flex items-start gap-2.5 bg-red-950/50 border border-red-500/30 rounded-2xl p-3.5">
               <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
@@ -227,7 +259,6 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
             </div>
           )}
 
-          {/* Botão */}
           <button
             type="submit"
             disabled={submitting || !fieldsReady}
@@ -236,14 +267,14 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
             {submitting ? (
               <><RefreshCcw className="w-5 h-5 animate-spin" />Ativando seu teste...</>
             ) : !fieldsReady ? (
-              <><RefreshCcw className="w-4 h-4 animate-spin" />Carregando...</>
+              <><RefreshCcw className="w-4 h-4 animate-spin" />Carregando formulário...</>
             ) : (
               <><Lock className="w-4 h-4" />Começar 3 dias grátis</>
             )}
           </button>
 
           <p className="text-center text-[10px] text-zinc-600 flex items-center justify-center gap-1">
-            <Lock className="w-3 h-3" />Dados do cartão protegidos pelo Mercado Pago
+            <Lock className="w-3 h-3" />Dados protegidos pelo Mercado Pago
           </p>
         </form>
       )}

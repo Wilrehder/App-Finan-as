@@ -64,7 +64,12 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
     setTimeout(() => {
       try {
         const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY || ""
-        if (!publicKey) { setSdkError(true); return }
+        if (!publicKey) { 
+          console.error("Missing NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY")
+          setError("Chave pública do Mercado Pago não encontrada. Reinicie o servidor se você acabou de adicioná-la no .env."); 
+          setSdkError(true); 
+          return 
+        }
 
         const mp = new window.MercadoPago(publicKey, { locale: "pt-BR" })
         mpRef.current = mp
@@ -195,13 +200,18 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
         </span>
       </label>
 
-      {/* Erro do SDK */}
-      {sdkError && (
+      {/* Erro do SDK ou Erro Customizado */}
+      {error ? (
+        <div className="flex items-start gap-2.5 bg-red-950/50 border border-red-500/30 rounded-2xl p-3.5">
+          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-red-300">{error}</p>
+        </div>
+      ) : sdkError ? (
         <div className="flex items-start gap-2.5 bg-red-950/50 border border-red-500/30 rounded-2xl p-3.5">
           <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-red-300">Não foi possível carregar o formulário de pagamento. Verifique sua conexão e recarregue a página.</p>
         </div>
-      )}
+      ) : null}
 
       {/* Formulário de cartão */}
       {!sdkError && (
@@ -258,12 +268,7 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
             />
           </div>
 
-          {error && (
-            <div className="flex items-start gap-2.5 bg-red-950/50 border border-red-500/30 rounded-2xl p-3.5">
-              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-red-300">{error}</p>
-            </div>
-          )}
+
 
           <button
             type="submit"

@@ -32,7 +32,7 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
   const [name, setName] = useState("")
   const [cpf, setCpf] = useState("")
   const mpRef = useRef<any>(null)
-  const fieldsRef = useRef<{ cn: any; ex: any; cv: any } | null>(null)
+  const fieldsRef = useRef<any>(null)
   const mountedRef = useRef(false)
   const planRef = useRef<PlanType>(plan)
 
@@ -60,37 +60,41 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
     if (!sdkReady || !accepted || mountedRef.current) return
     mountedRef.current = true
 
-    try {
-      const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY || ""
-      if (!publicKey) {
+    // Aguarda o React pintar os divs no DOM antes de montar os iframes
+    setTimeout(() => {
+      try {
+        const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY || ""
+        if (!publicKey) { setSdkError(true); return }
+
+        const mp = new window.MercadoPago(publicKey, { locale: "pt-BR" })
+        mpRef.current = mp
+
+        // Verifica se os elementos existem no DOM
+        if (!document.getElementById("mp-cn")) {
+          setError("Erro interno: recarregue a página."); return
+        }
+
+        // IMPORTANTE: guardar a MESMA instância para usar no createCardToken
+        const fields = mp.fields()
+        fieldsRef.current = fields
+
+        const style = { color: "#e4e4e7", placeholderColor: "#52525b", fontSize: "15px" }
+        let ready = 0
+        const onReady = () => { ready++; if (ready >= 3) setFieldsReady(true) }
+
+        const cn = fields.create("cardNumber", { style, placeholder: "0000 0000 0000 0000" })
+        const ex = fields.create("expirationDate", { style, placeholder: "MM/AA" })
+        const cv = fields.create("securityCode", { style, placeholder: "CVV" })
+
+        cn.mount("mp-cn"); cn.on("ready", onReady)
+        ex.mount("mp-ex"); ex.on("ready", onReady)
+        cv.mount("mp-cv"); cv.on("ready", onReady)
+
+      } catch (err: any) {
+        console.error("MP mount error:", err)
         setSdkError(true)
-        return
       }
-      const mp = new window.MercadoPago(publicKey, { locale: "pt-BR" })
-      mpRef.current = mp
-
-      const style = { color: "#e4e4e7", placeholderColor: "#52525b", fontSize: "15px" }
-
-      let ready = 0
-      const onReady = () => { ready++; if (ready >= 3) setFieldsReady(true) }
-      const onError = (e: any) => {
-        console.error("MP Field error:", e)
-        setError("Erro ao carregar formulário do cartão. Verifique sua conexão.")
-      }
-
-      const cn = mp.fields().create("cardNumber", { style, placeholder: "0000 0000 0000 0000" })
-      const ex = mp.fields().create("expirationDate", { style, placeholder: "MM/AA" })
-      const cv = mp.fields().create("securityCode", { style, placeholder: "CVV" })
-
-      cn.mount("mp-cn"); cn.on("ready", onReady); cn.on("error", onError)
-      ex.mount("mp-ex"); ex.on("ready", onReady); ex.on("error", onError)
-      cv.mount("mp-cv"); cv.on("ready", onReady); cv.on("error", onError)
-
-      fieldsRef.current = { cn, ex, cv }
-    } catch (err: any) {
-      console.error("MP mount error:", err)
-      setError("Não foi possível carregar o formulário. Tente recarregar a página.")
-    }
+    }, 150)
   }, [sdkReady, accepted])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,17 +102,19 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
     const cleanCPF = cpf.replace(/\D/g, "")
     if (!name.trim()) { setError("Informe o nome do titular."); return }
     if (cleanCPF.length !== 11) { setError("CPF inválido. Digite os 11 dígitos."); return }
+    if (!fieldsRef.current) { setError("Formulário não carregado. Recarregue a página."); return }
 
     setSubmitting(true)
     setError(null)
     try {
-      const result = await mpRef.current.fields().createCardToken({
+      // Usa a MESMA instância fields() guardada no ref
+      const result = await fieldsRef.current.createCardToken({
         cardholderName: name.trim(),
         identificationType: "CPF",
         identificationNumber: cleanCPF,
       })
 
-      if (result.error) throw new Error(result.error.message)
+      if (!result.token) throw new Error(result.error?.message || "Token não gerado")
 
       const res = await fetch("/api/mercadopago/trial", {
         method: "POST",

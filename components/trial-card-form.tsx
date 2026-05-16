@@ -132,12 +132,12 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
         identificationNumber: cleanCPF,
       })
 
-      if (!result.token) throw new Error(result.error?.message || "Token não gerado")
+      if (!result.id) throw new Error("Erro na geração do token. Tente novamente.")
 
       const res = await fetch("/api/mercadopago/trial", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ card_token: result.token, plan_type: planRef.current }),
+        body: JSON.stringify({ card_token: result.id, plan_type: planRef.current }),
       })
       const data = await res.json()
       if (data.success) {
@@ -147,7 +147,13 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
         setSubmitting(false)
       }
     } catch (err: any) {
-      setError(err.message || "Verifique os dados do cartão e tente novamente.")
+      let errMsg = "Verifique os dados do cartão e tente novamente."
+      if (Array.isArray(err)) {
+        errMsg = err.map(e => e.message).join(", ")
+      } else if (err.message) {
+        errMsg = err.message
+      }
+      setError(errMsg)
       setSubmitting(false)
     }
   }

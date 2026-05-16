@@ -50,7 +50,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isProtectedRoute) {
     const status = user.user_metadata?.subscription_status
-    if (status !== 'active') {
+    if (status !== 'active' && status !== 'trial') {
       const url = request.nextUrl.clone()
       url.pathname = '/assinatura'
       return NextResponse.redirect(url)
@@ -60,11 +60,11 @@ export async function updateSession(request: NextRequest) {
   if (user && isAuthPage) {
     const status = user.user_metadata?.subscription_status
     const url = request.nextUrl.clone()
-    url.pathname = status === 'active' ? '/chat' : '/assinatura'
+    url.pathname = (status === 'active' || status === 'trial') ? '/chat' : '/assinatura'
     return NextResponse.redirect(url)
   }
 
-  if (user && isAssinaturaPage && user.user_metadata?.subscription_status === 'active') {
+  if (user && isAssinaturaPage && (user.user_metadata?.subscription_status === 'active' || user.user_metadata?.subscription_status === 'trial')) {
     const url = request.nextUrl.clone()
     url.pathname = '/chat'
     return NextResponse.redirect(url)

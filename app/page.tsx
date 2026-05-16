@@ -39,14 +39,16 @@ export default function LandingPage() {
               href="https://instagram.com/finchatoficial"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-zinc-400 hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+              className="group flex items-center gap-2.5 px-3 sm:px-4 py-2 bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 hover:border-white/20 rounded-full transition-all duration-300 hover:scale-105"
             >
-              <InstagramIcon className="w-4 h-4" />
-              <span className="hidden sm:inline text-sm font-medium">@finchatoficial</span>
+              <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500 flex items-center justify-center p-[3px]">
+                <InstagramIcon className="w-full h-full text-white" />
+              </div>
+              <span className="hidden sm:inline text-sm font-semibold text-zinc-300 group-hover:text-white">@finchatoficial</span>
             </a>
             <Link
               href="/login"
-              className="text-sm font-medium text-zinc-400 hover:text-white transition-colors border border-white/10 px-4 py-2 rounded-full hover:border-white/20"
+              className="text-sm font-medium text-zinc-400 hover:text-white transition-colors px-2 py-2"
             >
               Entrar
             </Link>
@@ -91,13 +93,24 @@ export default function LandingPage() {
             </p>
 
             {/* CTA */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
               <Link
                 href="/cadastro"
                 className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg rounded-2xl transition-all duration-200 hover:scale-105 active:scale-[0.98] shadow-[0_0_40px_-8px_rgba(52,211,153,0.5)]"
               >
                 Comece seu teste grátis →
               </Link>
+              <a
+                href="https://instagram.com/finchatoficial"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white font-medium text-lg rounded-2xl transition-all duration-200 hover:scale-105"
+              >
+                <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500 flex items-center justify-center p-[3px]">
+                  <InstagramIcon className="w-full h-full text-white" />
+                </div>
+                Conheça nosso projeto
+              </a>
             </div>
 
           </div>

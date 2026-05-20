@@ -49,7 +49,14 @@ export default function RootLayout({
     // suppressHydrationWarning evita mismatch do script de tema que adiciona classe no <html>
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        {/* Script anti-flash: lê localStorage ANTES do primeiro render */}
+        {/* iOS lê diretamente essa tag — ignora o manifest para o ícone da área de trabalho */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png?v=2" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon.png?v=2" />
+        <link rel="shortcut icon" href="/apple-touch-icon.png?v=2" />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -68,14 +75,6 @@ export default function RootLayout({
             `,
           }}
         />
-        {/* iOS lê diretamente essa tag — ignora o manifest para o ícone da área de trabalho */}
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png?v=2" />
-        <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon.png?v=2" />
-        <link rel="shortcut icon" href="/apple-touch-icon.png?v=2" />
-      </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
           <NavigationProgress />
           <InstallPrompt />

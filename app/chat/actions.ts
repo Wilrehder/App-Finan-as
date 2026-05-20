@@ -9,7 +9,7 @@ export async function parseUserIntent(message: string, context?: ParsedIntent) {
   let parsed = await parseMessage(message, context)
   
   // MACRO FIX: Garantir que o contexto não seja perdido pelo GPT se a intenção for a mesma
-  if (parsed && context && context.intent === parsed.intent) {
+  if (parsed && context && (context.intent === parsed.intent || (context.intent === 'incomplete_fixed' && parsed.intent === 'register_fixed'))) {
     const merged = { ...context };
     for (const key in parsed) {
       if (parsed[key as keyof ParsedIntent] !== undefined && parsed[key as keyof ParsedIntent] !== null) {

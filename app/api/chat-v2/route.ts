@@ -289,5 +289,5 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
     }
   });
 
-  return result.toTextStreamResponse();
+  return result.toUIMessageStreamResponse();
 }

@@ -43,10 +43,31 @@ export default function ChatPage() {
   };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const saved = localStorage.getItem('finchat_history');
+    if (saved) {
+      try {
+        setMessages(JSON.parse(saved));
+      } catch (e) {
+        console.error("Erro ao recuperar histórico:", e);
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem('finchat_history', JSON.stringify(messages));
+    }
+  }, [messages, isLoaded]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isLoaded]);
 
   const clearHistory = () => {
     setMessages([

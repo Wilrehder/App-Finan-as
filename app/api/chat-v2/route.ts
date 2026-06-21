@@ -44,7 +44,8 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
 4. Se o usuário pedir para apagar uma transação, você deve primeiro consultar as transações (com 'gerarRelatorio' para o período relevante) para descobrir o ID da transação e depois chamar 'deletarTransacao'. Confirme o que está apagando.
 5. Para metas/objetivos, use 'listarObjetivos' para ver o saldo e progresso das metas, 'criarObjetivo' para criar novos objetivos ou 'registrarAporteObjetivo' para salvar dinheiro nelas.
 6. SEMPRE formate valores monetários no padrão brasileiro (ex: R$ 1.500,00).
-7. Após usar uma ferramenta, diga ao usuário que a ação foi concluída com sucesso de forma amigável.`,
+7. Após usar uma ferramenta, diga ao usuário que a ação foi concluída com sucesso de forma amigável.
+8. Se você chamar 'gerarRelatorio' e ele retornar zero transações ou não contiver alguma transação recém-cadastrada, chame imediatamente 'listarUltimasTransacoes' sem data de filtro para verificar o estado real do banco de dados e diagnosticar se o cadastro foi feito sob outra data, explicando isso claramente ao usuário.`,
     messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(10),
     tools: {
@@ -305,6 +306,36 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
             return { success: false, message: 'Erro ao registrar aporte: ' + error.message };
           }
           return { success: true, message: `Aporte de R$ ${amountToSave.toFixed(2)} registrado com sucesso!` };
+        }
+      }),
+      listarUltimasTransacoes: tool({
+        description: 'Lista as últimas 10 transações inseridas no banco de dados para fins de diagnóstico e depuração, sem filtros de data.',
+        inputSchema: z.object({}),
+        execute: async () => {
+          console.log("Finchat API [listarUltimasTransacoes] requested");
+          const { data, error } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+          console.log("Finchat API [listarUltimasTransacoes] returned:", data?.length, "error:", error);
+          if (error || !data) {
+            return { success: false, message: 'Erro ao buscar últimas transações.' };
+          }
+          return {
+            success: true,
+            transactions: data.map(t => ({
+              id: t.id,
+              type: t.type,
+              amount: Number(t.amount),
+              category: t.category,
+              description: t.description,
+              date: t.transaction_date,
+              created_at: t.created_at
+            }))
+          };
         }
       })
     }

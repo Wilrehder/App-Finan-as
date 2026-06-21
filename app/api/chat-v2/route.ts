@@ -41,14 +41,20 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
     tools: {
       cadastrarTransacao: tool({
         description: 'Cadastra uma transação avulsa (receita ou despesa) na conta do usuário.',
-        parameters: z.object({
+        inputSchema: z.object({
           type: z.enum(['income', 'expense']).describe('O tipo da transação: income (receita) ou expense (despesa)'),
           amount: z.number().describe('O valor monetário da transação'),
           category: z.string().describe('A categoria. Ex: Alimentação, Transporte, Saúde, Lazer, Serviços, Salário, Outros'),
           description: z.string().describe('Descrição curta da transação. Máximo 4 palavras.'),
           transaction_date: z.string().describe('Data da transação no formato YYYY-MM-DD. Inferir com base na fala do usuário (ex: hoje, ontem, ou uma data específica).')
         }),
-        execute: async ({ type, amount, category, description, transaction_date }) => {
+        execute: async ({ type, amount, category, description, transaction_date }: {
+          type: 'income' | 'expense';
+          amount: number;
+          category: string;
+          description: string;
+          transaction_date: string;
+        }) => {
           const { error } = await supabase
             .from('transactions')
             .insert({
@@ -68,7 +74,7 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
       }),
       cadastrarContaFixa: tool({
         description: 'Cadastra uma conta, despesa ou receita recorrente MENSAL (fixa).',
-        parameters: z.object({
+        inputSchema: z.object({
           type: z.enum(['income', 'expense']).describe('O tipo: income ou expense'),
           amount: z.number().describe('O valor da transação'),
           category: z.string().describe('A categoria apropriada'),
@@ -76,7 +82,14 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
           day_of_month: z.number().describe('O dia do mês que ocorrerá a cobrança/recebimento (1 a 31)'),
           is_business_day: z.boolean().describe('Verdadeiro se o usuário disser que é no "Xº dia útil", falso caso contrário')
         }),
-        execute: async ({ type, amount, category, description, day_of_month, is_business_day }) => {
+        execute: async ({ type, amount, category, description, day_of_month, is_business_day }: {
+          type: 'income' | 'expense';
+          amount: number;
+          category: string;
+          description: string;
+          day_of_month: number;
+          is_business_day: boolean;
+        }) => {
           const { error } = await supabase
             .from('recurring_transactions')
             .insert({
@@ -97,13 +110,18 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
       }),
       gerarRelatorio: tool({
         description: 'Busca a LISTA DETALHADA de transações no banco de dados para um período de datas específico para responder a perguntas sobre onde o usuário gastou, qual o saldo ou transações específicas.',
-        parameters: z.object({
+        inputSchema: z.object({
           report_start_date: z.string().describe('Data de início no formato YYYY-MM-DD'),
           report_end_date: z.string().describe('Data de fim no formato YYYY-MM-DD'),
           report_category: z.string().optional().describe('Categoria a filtrar (se solicitado pelo usuário)'),
           report_type: z.enum(['income', 'expense']).optional().describe('Filtrar apenas despesas ou receitas (se solicitado)')
         }),
-        execute: async ({ report_start_date, report_end_date, report_category, report_type }) => {
+        execute: async ({ report_start_date, report_end_date, report_category, report_type }: {
+          report_start_date: string;
+          report_end_date: string;
+          report_category?: string;
+          report_type?: 'income' | 'expense';
+        }) => {
           let query = supabase
             .from('transactions')
             .select('*')
@@ -153,10 +171,10 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
       }),
       deletarTransacao: tool({
         description: 'Exclui uma transação existente no banco de dados usando o ID da transação.',
-        parameters: z.object({
+        inputSchema: z.object({
           transaction_id: z.string().describe('O ID (UUID) único da transação a ser excluída. Deve ser obtido previamente consultando as transações.')
         }),
-        execute: async ({ transaction_id }) => {
+        execute: async ({ transaction_id }: { transaction_id: string }) => {
           const { error } = await supabase
             .from('transactions')
             .delete()
@@ -171,7 +189,7 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
       }),
       listarObjetivos: tool({
         description: 'Busca a lista de todas as metas financeiras (objetivos) do usuário, incluindo o progresso financeiro e o total guardado em cada uma.',
-        parameters: z.object({}),
+        inputSchema: z.object({}),
         execute: async () => {
           const { data: goals, error } = await supabase
             .from('goals')
@@ -203,7 +221,7 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
       }),
       criarObjetivo: tool({
         description: 'Cria uma nova meta ou objetivo financeiro para o usuário poupar dinheiro.',
-        parameters: z.object({
+        inputSchema: z.object({
           name: z.string().describe('Nome descritivo da meta/objetivo (ex: Viagem para o Rio, Comprar Notebook)'),
           target_amount: z.number().describe('O valor total a ser poupado'),
           deadline: z.string().describe('Data limite para atingir o objetivo no formato YYYY-MM-DD'),
@@ -211,7 +229,14 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
           payment_day: z.number().optional().describe('Dia do mês planejado para o aporte mensal (de 1 a 31)'),
           icon: z.string().optional().describe('Emoji representativo para a meta (ex: 🚗, ✈️, 💻, 🎯)')
         }),
-        execute: async ({ name, target_amount, deadline, frequency, payment_day, icon }) => {
+        execute: async ({ name, target_amount, deadline, frequency, payment_day, icon }: {
+          name: string;
+          target_amount: number;
+          deadline: string;
+          frequency: 'daily' | 'weekly' | 'monthly';
+          payment_day?: number;
+          icon?: string;
+        }) => {
           const { error } = await supabase
             .from('goals')
             .insert({
@@ -232,11 +257,11 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
       }),
       registrarAporteObjetivo: tool({
         description: 'Registra um novo depósito/aporte (dinheiro guardado) para um objetivo/meta específica.',
-        parameters: z.object({
+        inputSchema: z.object({
           goal_id: z.string().describe('O ID (UUID) do objetivo onde o aporte será adicionado. Você deve primeiro listar os objetivos para achar o ID correto.'),
           amount: z.number().describe('O valor monetário a ser guardado/depositado')
         }),
-        execute: async ({ goal_id, amount }) => {
+        execute: async ({ goal_id, amount }: { goal_id: string; amount: number }) => {
           const amountToSave = Math.abs(amount);
           if (amountToSave <= 0) {
             return { success: false, message: 'O valor do aporte deve ser maior que zero.' };
@@ -264,5 +289,5 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
     }
   });
 
-  return result.toDataStreamResponse();
+  return result.toTextStreamResponse();
 }

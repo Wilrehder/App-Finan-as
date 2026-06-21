@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, UIMessage } from "ai";
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,16 +11,36 @@ import { Input } from "@/components/ui/input";
 import { NotificationBellClient } from "@/components/notification-bell-client";
 
 export default function ChatV2Page() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages, append } = useChat({
-    api: "/api/chat-v2",
-    initialMessages: [
+  const [input, setInput] = useState("");
+  
+  const { messages, setMessages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({ api: "/api/chat-v2" }),
+    messages: [
       {
         id: "1",
         role: "assistant",
-        content: "Olá! Sou a nova versão inteligente do Finchat (V2). Estou pronto para conversar e gerenciar suas finanças. O que vamos fazer hoje?"
+        parts: [
+          {
+            type: "text",
+            text: "Olá! Sou a nova versão inteligente do Finchat (V2). Estou pronto para conversar e gerenciar suas finanças. O que vamos fazer hoje?"
+          }
+        ]
       }
-    ]
+    ] as UIMessage[]
   });
+
+  const isLoading = status === 'submitted' || status === 'streaming';
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!input.trim()) return;
+    sendMessage({ text: input });
+    setInput("");
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +53,12 @@ export default function ChatV2Page() {
       {
         id: "1",
         role: "assistant",
-        content: "Histórico limpo! Como posso ajudar?"
+        parts: [
+          {
+            type: "text",
+            text: "Histórico limpo! Como posso ajudar?"
+          }
+        ]
       }
     ]);
   };
@@ -87,31 +113,38 @@ export default function ChatV2Page() {
                 )}
                 
                 {/* Texto da mensagem */}
-                {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
+                {msg.parts.some((p: any) => p.type === 'text') && (
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {msg.parts
+                      .filter((p: any) => p.type === 'text')
+                      .map((p: any) => p.text)
+                      .join('\n')}
+                  </p>
+                )}
 
                 {/* Exibição de Tool Calls (Ferramentas acionadas) */}
-                {msg.toolInvocations?.map((toolInvocation) => {
-                  const { toolName, toolCallId, state } = toolInvocation;
-                  
-                  if (state === 'result') {
-                    // Tool terminou de executar
-                    const { result } = toolInvocation;
-                    return (
-                      <div key={toolCallId} className="mt-2 text-xs bg-black/20 p-2 rounded border border-white/10">
-                        <span className="text-green-400 font-bold">✓ Executou: {toolName}</span>
-                        {result.message && <p className="mt-1 opacity-80">{result.message}</p>}
-                      </div>
-                    );
-                  } else {
-                    // Tool está rodando
-                    return (
-                      <div key={toolCallId} className="mt-2 text-xs bg-black/20 p-2 rounded border border-white/10 flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                        <span className="text-primary font-bold">Processando: {toolName}...</span>
-                      </div>
-                    );
-                  }
-                })}
+                {msg.parts
+                  .filter((p: any) => p.type === 'tool-call')
+                  .map((part: any) => {
+                    const { toolName, toolCallId, state, result } = part;
+                    
+                    if (state === 'result' && result) {
+                      return (
+                        <div key={toolCallId} className="mt-2 text-xs bg-black/20 p-2 rounded border border-white/10">
+                          <span className="text-green-400 font-bold">✓ Executou: {toolName}</span>
+                          {result.message && <p className="mt-1 opacity-80">{result.message}</p>}
+                        </div>
+                      );
+                    } else if (state === 'call') {
+                      return (
+                        <div key={toolCallId} className="mt-2 text-xs bg-black/20 p-2 rounded border border-white/10 flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                          <span className="text-primary font-bold">Processando: {toolName}...</span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
               </div>
             </div>
           </div>

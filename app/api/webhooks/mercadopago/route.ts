@@ -9,8 +9,8 @@ const client = new MercadoPagoConfig({
 
 // Initialize Supabase Admin client using Service Role Key
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-to-prevent-build-crash.supabase.co",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-key"
 )
 
 export async function POST(req: Request) {

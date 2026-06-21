@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { openai } from "@ai-sdk/openai";
-import { streamText, tool } from "ai";
+import { streamText, tool, convertToModelMessages } from "ai";
 import { z } from "zod";
 
 export const maxDuration = 30;
@@ -37,7 +37,7 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
 5. Para metas/objetivos, use 'listarObjetivos' para ver o saldo e progresso das metas, 'criarObjetivo' para criar novos objetivos ou 'registrarAporteObjetivo' para salvar dinheiro nelas.
 6. SEMPRE formate valores monetários no padrão brasileiro (ex: R$ 1.500,00).
 7. Após usar uma ferramenta, diga ao usuário que a ação foi concluída com sucesso de forma amigável.`,
-    messages,
+    messages: await convertToModelMessages(messages),
     tools: {
       cadastrarTransacao: tool({
         description: 'Cadastra uma transação avulsa (receita ou despesa) na conta do usuário.',

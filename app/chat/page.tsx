@@ -13,7 +13,7 @@ import { NotificationBellClient } from "@/components/notification-bell-client";
 export default function ChatPage() {
   const [input, setInput] = useState("");
   
-  const { messages, setMessages, sendMessage, status } = useChat({
+  const { messages, setMessages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat-v2" }),
     messages: [
       {
@@ -161,6 +161,21 @@ export default function ChatPage() {
             </div>
           </div>
         )}
+
+        {error && (
+          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex flex-col gap-1.5 animate-in fade-in duration-200">
+            <span className="font-bold flex items-center gap-1.5">⚠️ Erro de Comunicação</span>
+            <p className="text-xs leading-relaxed opacity-90">
+              Não foi possível obter resposta da IA. Se estiver testando localmente, certifique-se de configurar as variáveis de ambiente. Em produção, verifique a chave da OpenAI no painel da Vercel.
+            </p>
+            {error.message && (
+              <code className="text-[10px] p-2 bg-black/30 rounded border border-white/5 font-mono overflow-x-auto break-all text-white">
+                Detalhes: {error.message}
+              </code>
+            )}
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 

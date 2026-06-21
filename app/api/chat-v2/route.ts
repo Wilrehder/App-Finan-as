@@ -64,6 +64,7 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
           description: string;
           transaction_date: string;
         }) => {
+          console.log("Finchat API [cadastrarTransacao]:", { type, amount, category, description, transaction_date });
           const { error } = await supabase
             .from('transactions')
             .insert({
@@ -139,6 +140,7 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
           report_category?: string;
           report_type?: 'income' | 'expense';
         }) => {
+          console.log("Finchat API [gerarRelatorio] requested:", { report_start_date, report_end_date, report_category, report_type });
           let query = supabase
             .from('transactions')
             .select('*')
@@ -155,6 +157,8 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
           }
 
           const { data: transactions, error } = await query;
+          
+          console.log("Finchat API [gerarRelatorio] database count:", transactions?.length, "error:", error);
           
           if (error || !transactions) {
             return { success: false, message: 'Erro ao buscar dados de relatório no banco de dados.' };

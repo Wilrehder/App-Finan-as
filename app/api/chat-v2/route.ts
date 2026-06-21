@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { openai } from "@ai-sdk/openai";
 import { streamText, tool, convertToModelMessages, stepCountIs } from "ai";
 import { z } from "zod";
+import { syncRecurringTransactions } from "@/lib/sync";
 
 export const maxDuration = 30;
 
@@ -13,6 +14,13 @@ export async function POST(req: Request) {
 
   if (!user) {
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  // Sincronizar transações recorrentes/mensais
+  try {
+    await syncRecurringTransactions();
+  } catch (error) {
+    console.error("Erro ao sincronizar transações recorrentes:", error);
   }
 
   // Determine current date/time in Brazil for context

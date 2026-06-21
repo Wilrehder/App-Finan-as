@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, UIMessage } from "ai";
+import { DefaultChatTransport, UIMessage, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -15,6 +15,7 @@ export default function ChatPage() {
   
   const { messages, setMessages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat-v2" }),
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     messages: [
       {
         id: "1",
@@ -158,37 +159,48 @@ export default function ChatPage() {
                   </p>
                 )}
 
-                {/* Exibição de Tool Calls (Ferramentas acionadas) */}
-                {msg.parts && msg.parts
-                  .filter((p: any) => p.type === 'tool-call')
-                  .map((part: any) => {
-                    const { toolName, toolCallId, state, result } = part;
-                    
-                    if (state === 'result' && result) {
-                      return (
-                        <div key={toolCallId} className="mt-2 text-xs bg-black/20 p-2 rounded border border-white/10">
-                          <span className="text-green-400 font-bold">✓ Executou: {toolName}</span>
-                          {result.message && <p className="mt-1 opacity-80">{result.message}</p>}
-                        </div>
-                      );
-                    } else if (state === 'call') {
-                      return (
-                        <div key={toolCallId} className="mt-2 text-xs bg-black/20 p-2 rounded border border-white/10 flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                          <span className="text-primary font-bold">Processando: {toolName}...</span>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
+                 {/* Exibição de Tool Calls (Ferramentas acionadas) */}
+                 {msg.parts && msg.parts
+                   .filter((p: any) => p.type.startsWith('tool-') || p.type === 'dynamic-tool')
+                   .map((part: any) => {
+                     const toolName = part.type === 'dynamic-tool' ? part.toolName : part.type.substring(5);
+                     const { toolCallId, state, output, errorText } = part;
+                     
+                     if (state === 'output-available' && output) {
+                       return (
+                         <div key={toolCallId} className="mt-2 text-xs bg-black/20 p-2 rounded border border-white/10">
+                           <span className="text-green-400 font-bold">✓ Executou: {toolName}</span>
+                           {output.message && <p className="mt-1 opacity-80">{output.message}</p>}
+                         </div>
+                       );
+                     } else if (state === 'output-error') {
+                       return (
+                         <div key={toolCallId} className="mt-2 text-xs bg-red-500/10 p-2 rounded border border-red-500/20">
+                           <span className="text-red-400 font-bold">❌ Erro no {toolName}</span>
+                           {errorText && <p className="mt-1 opacity-80 text-red-300">{errorText}</p>}
+                         </div>
+                       );
+                     } else {
+                       // Estados de processamento: input-streaming, input-available, approval-requested, approval-responded
+                       return (
+                         <div key={toolCallId} className="mt-2 text-xs bg-black/20 p-2 rounded border border-white/10 flex items-center gap-2">
+                           <div className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                           <span className="text-primary font-bold">Processando: {toolName}...</span>
+                         </div>
+                       );
+                     }
+                   })}
               </div>
             </div>
           </div>
         ))}
 
-        {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-          <div className="flex justify-start">
-            <div className="max-w-[80%] p-4 rounded-2xl bg-secondary text-secondary-foreground rounded-bl-none">
+         {isLoading && (
+           messages[messages.length - 1]?.role !== 'assistant' ||
+           (!messages[messages.length - 1].parts || messages[messages.length - 1].parts.length === 0)
+         ) && (
+           <div className="flex justify-start">
+             <div className="max-w-[80%] p-4 rounded-2xl bg-secondary text-secondary-foreground rounded-bl-none">
               <div className="flex space-x-1">
                 <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
                 <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "150ms" }} />

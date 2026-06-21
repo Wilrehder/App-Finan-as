@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { openai } from "@ai-sdk/openai";
-import { streamText, tool, convertToModelMessages } from "ai";
+import { streamText, tool, convertToModelMessages, stepCountIs } from "ai";
 import { z } from "zod";
 
 export const maxDuration = 30;
@@ -38,6 +38,7 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
 6. SEMPRE formate valores monetários no padrão brasileiro (ex: R$ 1.500,00).
 7. Após usar uma ferramenta, diga ao usuário que a ação foi concluída com sucesso de forma amigável.`,
     messages: await convertToModelMessages(messages),
+    stopWhen: stepCountIs(10),
     tools: {
       cadastrarTransacao: tool({
         description: 'Cadastra uma transação avulsa (receita ou despesa) na conta do usuário.',

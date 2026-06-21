@@ -114,6 +114,14 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
           if (error) {
             return { success: false, message: 'Erro ao cadastrar conta fixa: ' + error.message };
           }
+
+          // Sincronizar imediatamente para gerar o lançamento deste mês
+          try {
+            await syncRecurringTransactions();
+          } catch (syncError) {
+            console.error("Erro ao sincronizar após cadastrar conta fixa:", syncError);
+          }
+
           return { success: true, message: 'Conta fixa recorrente cadastrada com sucesso!' };
         }
       }),

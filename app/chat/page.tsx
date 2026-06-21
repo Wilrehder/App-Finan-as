@@ -49,7 +49,22 @@ export default function ChatPage() {
     const saved = localStorage.getItem('finchat_history');
     if (saved) {
       try {
-        setMessages(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const sanitized = parsed.map((msg: any) => {
+            const role = msg.role === 'bot' ? 'assistant' : msg.role;
+            let parts = msg.parts;
+            if (!parts && msg.content) {
+              parts = [{ type: 'text', text: msg.content }];
+            }
+            return {
+              id: msg.id || Date.now().toString() + Math.random().toString(),
+              role,
+              parts: parts || []
+            };
+          });
+          setMessages(sanitized);
+        }
       } catch (e) {
         console.error("Erro ao recuperar histórico:", e);
       }
@@ -134,7 +149,7 @@ export default function ChatPage() {
                 )}
                 
                 {/* Texto da mensagem */}
-                {msg.parts.some((p: any) => p.type === 'text') && (
+                {msg.parts && msg.parts.some((p: any) => p.type === 'text') && (
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">
                     {msg.parts
                       .filter((p: any) => p.type === 'text')
@@ -144,7 +159,7 @@ export default function ChatPage() {
                 )}
 
                 {/* Exibição de Tool Calls (Ferramentas acionadas) */}
-                {msg.parts
+                {msg.parts && msg.parts
                   .filter((p: any) => p.type === 'tool-call')
                   .map((part: any) => {
                     const { toolName, toolCallId, state, result } = part;

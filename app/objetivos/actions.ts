@@ -22,27 +22,33 @@ export async function getGoals() {
     const totalSaved = goal.goal_deposits.reduce((acc: number, dep: any) => acc + Number(dep.amount), 0)
     const targetAmount = Number(goal.target_amount)
     
-    // Calculate periods
-    const today = new Date();
+    // Calculate total periods fixed from the goal's creation date to the deadline
+    const startDate = goal.created_at ? new Date(goal.created_at) : new Date();
     const deadline = new Date(goal.deadline);
-    const diffTime = Math.max(deadline.getTime() - today.getTime(), 0);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+    const totalDiffTime = Math.max(deadline.getTime() - startDate.getTime(), 0);
+    const totalDiffDays = Math.ceil(totalDiffTime / (1000 * 60 * 60 * 24)) || 1;
     
-    let periods = 1;
+    let totalPeriods = 1;
     if (goal.frequency === 'daily') {
-      periods = diffDays;
+      totalPeriods = totalDiffDays;
     } else if (goal.frequency === 'weekly') {
-      periods = Math.ceil(diffDays / 7) || 1;
+      totalPeriods = Math.ceil(totalDiffDays / 7) || 1;
     } else if (goal.frequency === 'monthly') {
-      const diffMonths = (deadline.getFullYear() - today.getFullYear()) * 12 + (deadline.getMonth() - today.getMonth());
-      periods = diffMonths > 0 ? diffMonths : 1;
+      const diffMonths = (deadline.getFullYear() - startDate.getFullYear()) * 12 + (deadline.getMonth() - startDate.getMonth());
+      totalPeriods = diffMonths > 0 ? diffMonths : 1;
     }
 
-    const remainingAmount = targetAmount - totalSaved;
-    // originalAmountPerPeriod is fixed and should be used to display installments and calculate paid ones
-    const originalAmountPerPeriod = targetAmount / periods;
-    // amountPerPeriod is dynamic, useful for "próximo aporte sugerido se você quiser terminar a tempo"
-    const amountPerPeriod = remainingAmount > 0 ? remainingAmount / periods : 0;
+    const remainingAmount = Math.max(targetAmount - totalSaved, 0);
+    const originalAmountPerPeriod = totalPeriods > 0 ? targetAmount / totalPeriods : targetAmount;
+    
+    // Calculate paid periods based on totalSaved and originalAmountPerPeriod
+    const paidPeriods = originalAmountPerPeriod > 0 ? Math.min(Math.floor(totalSaved / originalAmountPerPeriod), totalPeriods) : totalPeriods;
+    
+    // Remaining periods
+    const periods = totalPeriods - paidPeriods;
+    
+    // Recalculated amount per period for the remaining unpaid periods
+    const amountPerPeriod = periods > 0 ? remainingAmount / periods : 0;
     const percentage = Math.min((totalSaved / targetAmount) * 100, 100);
 
     return {
@@ -57,7 +63,8 @@ export async function getGoals() {
       remainingAmount,
       periods,
       amountPerPeriod,
-      originalAmountPerPeriod
+      originalAmountPerPeriod,
+      totalPeriods
     }
   })
 }

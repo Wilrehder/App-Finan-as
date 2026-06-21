@@ -159,17 +159,21 @@ export async function getCalendarEvents(year: number) {
       const createdDate = new Date(goal.created_at);
       const deadline = new Date(goal.deadline);
 
-      // Estimate amount per period (simplified)
+      // Estimate amount per period using static totalPeriods and dynamic remaining amount/periods
       const diffTime = Math.max(deadline.getTime() - createdDate.getTime(), 0);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
-      let periods = 1;
-      if (goal.frequency === 'daily') periods = diffDays;
-      else if (goal.frequency === 'weekly') periods = Math.ceil(diffDays / 7) || 1;
+      let totalPeriods = 1;
+      if (goal.frequency === 'daily') totalPeriods = diffDays;
+      else if (goal.frequency === 'weekly') totalPeriods = Math.ceil(diffDays / 7) || 1;
       else if (goal.frequency === 'monthly') {
         const diffMonths = (deadline.getFullYear() - createdDate.getFullYear()) * 12 + (deadline.getMonth() - createdDate.getMonth());
-        periods = diffMonths > 0 ? diffMonths : 1;
+        totalPeriods = diffMonths > 0 ? diffMonths : 1;
       }
-      const amountPerPeriod = targetAmount / periods;
+      const originalAmountPerPeriod = totalPeriods > 0 ? targetAmount / totalPeriods : targetAmount;
+      const paidPeriods = originalAmountPerPeriod > 0 ? Math.min(Math.floor(totalSaved / originalAmountPerPeriod), totalPeriods) : totalPeriods;
+      const remainingPeriods = totalPeriods - paidPeriods;
+      const remainingAmount = Math.max(targetAmount - totalSaved, 0);
+      const amountPerPeriod = remainingPeriods > 0 ? remainingAmount / remainingPeriods : 0;
 
       if (goal.frequency === 'daily') {
         for (let month = 0; month < 12; month++) {

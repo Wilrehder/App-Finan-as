@@ -72,16 +72,20 @@ export function GoalDetailsModal({ goal, onClose }: GoalDetailsModalProps) {
   if (!mounted) return null;
 
   const isCompleted = goal.percentage >= 100;
-  // Use originalAmountPerPeriod para que aportes extras não deformem as parcelas!
-  const amountPerInstallment = goal.originalAmountPerPeriod || goal.amountPerPeriod;
-  const paidPeriods = Math.floor(goal.totalSaved / amountPerInstallment);
+  const totalPeriods = goal.totalPeriods || goal.periods;
+  const amountPerInstallment = goal.originalAmountPerPeriod || (goal.targetAmount / totalPeriods);
+  const paidPeriods = amountPerInstallment > 0 ? Math.min(Math.floor(goal.totalSaved / amountPerInstallment), totalPeriods) : totalPeriods;
+  const remainingPeriods = totalPeriods - paidPeriods;
+  const remainingAmount = Math.max(goal.targetAmount - goal.totalSaved, 0);
+  const dynamicAmountPerPeriod = remainingPeriods > 0 ? remainingAmount / remainingPeriods : 0;
   
   // Create an array representing the installments
-  const installments = Array.from({ length: goal.periods }, (_, i) => {
+  const installments = Array.from({ length: totalPeriods }, (_, i) => {
+    const isPaid = i < paidPeriods || isCompleted;
     return {
       index: i + 1,
-      isPaid: i < paidPeriods || isCompleted,
-      amount: amountPerInstallment
+      isPaid,
+      amount: isPaid ? amountPerInstallment : dynamicAmountPerPeriod
     }
   });
 

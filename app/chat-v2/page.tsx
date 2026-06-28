@@ -10,6 +10,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NotificationBellClient } from "@/components/notification-bell-client";
 
+const isConfirmationRequest = (text: string) => {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("confirma?") ||
+    lower.includes("confirma ?") ||
+    lower.includes("confirmar?") ||
+    lower.includes("confirmar ?") ||
+    lower.includes("posso confirmar") ||
+    lower.includes("você confirma") ||
+    lower.includes("deseja confirmar")
+  );
+};
+
 export default function ChatV2Page() {
   const [input, setInput] = useState("");
   
@@ -92,63 +106,93 @@ export default function ChatV2Page() {
           </div>
         )}
         
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex animate-in fade-in slide-in-from-bottom-2 duration-300 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"} max-w-[85%]`}>
-              <div
-                className={`p-4 rounded-2xl ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-br-none"
-                    : "bg-secondary text-secondary-foreground rounded-bl-none"
-                }`}
-              >
-                {msg.role === "assistant" && (
-                  <div className="flex items-center gap-2 mb-2 opacity-70 text-xs font-semibold tracking-wide uppercase">
-                    <Image src="/logo.png" alt="Finchat" width={14} height={14} className="object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" /> 
-                    Agente V2
+        {messages.map((msg, index) => {
+          const msgText = msg.parts
+            ?.filter((p: any) => p.type === 'text')
+            ?.map((p: any) => p.text)
+            ?.join('\n') || '';
+          const isLast = index === messages.length - 1;
+          const showConfirmation = isLast && msg.role === 'assistant' && !isLoading && isConfirmationRequest(msgText);
+
+          return (
+            <div
+              key={msg.id}
+              className={`flex animate-in fade-in slide-in-from-bottom-2 duration-300 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"} max-w-[85%]`}>
+                <div
+                  className={`p-4 rounded-2xl ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-br-none"
+                      : "bg-secondary text-secondary-foreground rounded-bl-none"
+                  }`}
+                >
+                  {msg.role === "assistant" && (
+                    <div className="flex items-center gap-2 mb-2 opacity-70 text-xs font-semibold tracking-wide uppercase">
+                      <Image src="/logo.png" alt="Finchat" width={14} height={14} className="object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" /> 
+                      Agente V2
+                    </div>
+                  )}
+                  
+                  {/* Texto da mensagem */}
+                  {msg.parts.some((p: any) => p.type === 'text') && (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {msg.parts
+                        .filter((p: any) => p.type === 'text')
+                        .map((p: any) => p.text)
+                        .join('\n')}
+                    </p>
+                  )}
+
+                  {/* Exibição de Tool Calls (Ferramentas acionadas) */}
+                  {msg.parts
+                    .filter((p: any) => p.type === 'tool-call')
+                    .map((part: any) => {
+                      const { toolName, toolCallId, state, result } = part;
+                      
+                      if (state === 'result' && result) {
+                        return (
+                          <div key={toolCallId} className="mt-2 text-xs bg-black/20 p-2 rounded border border-white/10">
+                            <span className="text-green-400 font-bold">✓ Executou: {toolName}</span>
+                            {result.message && <p className="mt-1 opacity-80">{result.message}</p>}
+                          </div>
+                        );
+                      } else if (state === 'call') {
+                        return (
+                          <div key={toolCallId} className="mt-2 text-xs bg-black/20 p-2 rounded border border-white/10 flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                            <span className="text-primary font-bold">Processando: {toolName}...</span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })}
+                </div>
+
+                {/* Botões de Confirmação */}
+                {showConfirmation && (
+                  <div className="flex gap-2 mt-2 w-full justify-start animate-in fade-in slide-in-from-top-1 duration-200">
+                    <Button
+                      size="sm"
+                      className="rounded-full px-5 h-9 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm"
+                      onClick={() => sendMessage({ text: "aceitar" })}
+                    >
+                      Aceitar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full px-5 h-9 bg-secondary hover:bg-secondary/80 border-white/10 text-foreground font-semibold shadow-sm"
+                      onClick={() => sendMessage({ text: "recusar" })}
+                    >
+                      Recusar
+                    </Button>
                   </div>
                 )}
-                
-                {/* Texto da mensagem */}
-                {msg.parts.some((p: any) => p.type === 'text') && (
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {msg.parts
-                      .filter((p: any) => p.type === 'text')
-                      .map((p: any) => p.text)
-                      .join('\n')}
-                  </p>
-                )}
-
-                {/* Exibição de Tool Calls (Ferramentas acionadas) */}
-                {msg.parts
-                  .filter((p: any) => p.type === 'tool-call')
-                  .map((part: any) => {
-                    const { toolName, toolCallId, state, result } = part;
-                    
-                    if (state === 'result' && result) {
-                      return (
-                        <div key={toolCallId} className="mt-2 text-xs bg-black/20 p-2 rounded border border-white/10">
-                          <span className="text-green-400 font-bold">✓ Executou: {toolName}</span>
-                          {result.message && <p className="mt-1 opacity-80">{result.message}</p>}
-                        </div>
-                      );
-                    } else if (state === 'call') {
-                      return (
-                        <div key={toolCallId} className="mt-2 text-xs bg-black/20 p-2 rounded border border-white/10 flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                          <span className="text-primary font-bold">Processando: {toolName}...</span>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="flex justify-start">

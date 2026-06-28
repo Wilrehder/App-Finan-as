@@ -109,7 +109,8 @@ Regras:
    - MANTENHA TODOS OS DADOS DO CONTEXTO: Se o contexto existir, você DEVE retornar o JSON com todos os dados do contexto misturados com as novas informações do usuário.
    - Exemplo: Se o contexto dizia 'incomplete_fixed' (faltava o valor, mas tinha description e type) e o usuário disse apenas "50 reais", você deve devolver a mesma conta com tudo que tinha, mudando o 'amount' para 50 e o 'intent' para 'register_fixed'.
 11. Se não entender nada, ou for papo furado, retorne {"intent": "unknown", "reply_message": "Putz, não entendi 😅. Como posso te ajudar hoje?"}.
-12. RETORNE SOMENTE O JSON PURO. NADA DE TEXTO ADICIONAL.`;
+12. DATA ATUAL (CRÍTICO): A data de hoje é estritamente ${todayStr}. Ignore qualquer outra data mencionada no histórico de mensagens anterior ao determinar o dia de hoje. Se o usuário disser "hoje" ou não especificar a data, use obrigatoriamente a data ${todayStr}.
+13. RETORNE SOMENTE O JSON PURO. NADA DE TEXTO ADICIONAL.`;
 
   try {
     const response = await openai.chat.completions.create({

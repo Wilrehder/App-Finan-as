@@ -40,13 +40,10 @@ export async function parseMessage(message: string, context?: Partial<ParsedInte
   if (!message || message.trim() === '') return null;
 
   // Determinar data base no timezone do Brasil
-  const now = new Date();
-  const brOffset = -3 * 60; // UTC-3
-  const brTime = new Date(now.getTime() + (brOffset - now.getTimezoneOffset()) * 60000);
-  
-  const todayStr = brTime.toISOString().split('T')[0];
-  const currentMonth = brTime.getMonth() + 1;
-  const currentYear = brTime.getFullYear();
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const [yearStr, monthStr, dayStr] = todayStr.split('-');
+  const currentYear = parseInt(yearStr);
+  const currentMonth = parseInt(monthStr);
 
   const systemPrompt = `Você é o parser de linguagem natural de um assistente financeiro chamado Finchat.
 Sua missão é ler o que o usuário digitou e extrair a intenção e os dados financeiros, retornando EXATAMENTE um JSON válido, sem markdown.
@@ -80,7 +77,7 @@ Regras:
 1. 'register': Para contas/transações avulsas ("gastei 50 no ifood hoje", "recebi 1000 de pix ontem").
    - 'type' é 'expense' por padrão, a menos que seja claro que é receita (ganhei, recebi, salário).
    - Defina 'amount' (número limpo), 'category' e 'description'.
-   - 'transaction_date' DEVE ser inferido e colocado no formato YYYY-MM-DD com base em "ontem", "hoje", ou uma data.
+   - 'transaction_date' DEVE ser inferido e colocado no formato YYYY-MM-DD com base em "ontem", "hoje", ou uma data. Se o usuário não especificar a data, use obrigatoriamente a data de hoje: ${todayStr}.
 2. 'register_fixed': Para contas fixas/recorrentes ("netflix todo dia 10 custa 40", "salário todo 5 dia útil").
    - 'type' é 'expense' por padrão, a menos que seja claro que é receita. ISSO É OBRIGATÓRIO.
    - Preencha SEMPRE 'day_of_month' se um dia numérico for mencionado (ex: "todo dia 15" -> "day_of_month": 15).

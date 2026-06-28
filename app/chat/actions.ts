@@ -172,6 +172,9 @@ export async function confirmTransaction(parsed: ParsedIntent) {
   const { data: { user }, error: userError } = await supabase.auth.getUser()
   if (userError || !user) throw new Error("Unauthorized")
 
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const finalDate = parsed.transaction_date || todayStr;
+
   const { error: dbError } = await supabase
     .from('transactions')
     .insert({
@@ -180,7 +183,7 @@ export async function confirmTransaction(parsed: ParsedIntent) {
       amount: parsed.amount,
       category: parsed.category,
       description: parsed.description,
-      transaction_date: parsed.transaction_date, // Nova coluna
+      transaction_date: finalDate, // Nova coluna
     })
 
   if (dbError) {
@@ -194,7 +197,7 @@ export async function confirmTransaction(parsed: ParsedIntent) {
   revalidatePath("/chat")
 
   const typeStr = parsed.type === 'income' ? 'Receita' : 'Despesa'
-  const [y, m, d] = parsed.transaction_date!.split('-')
+  const [y, m, d] = finalDate.split('-')
   
   return {
     success: true,

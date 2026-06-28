@@ -24,12 +24,10 @@ export async function POST(req: Request) {
   }
 
   // Determine current date/time in Brazil for context
-  const now = new Date();
-  const brOffset = -3 * 60; // UTC-3
-  const brTime = new Date(now.getTime() + (brOffset - now.getTimezoneOffset()) * 60000);
-  const todayStr = brTime.toISOString().split('T')[0];
-  const currentMonth = brTime.getMonth() + 1;
-  const currentYear = brTime.getFullYear();
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const [yearStr, monthStr, dayStr] = todayStr.split('-');
+  const currentYear = parseInt(yearStr);
+  const currentMonth = parseInt(monthStr);
 
   const result = streamText({
     model: openai("gpt-4o-mini"),
@@ -62,7 +60,7 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
           amount: z.number().describe('O valor monetário da transação'),
           category: z.string().describe('A categoria. Ex: Alimentação, Transporte, Saúde, Lazer, Serviços, Salário, Outros'),
           description: z.string().describe('Descrição curta da transação. Máximo 4 palavras.'),
-          transaction_date: z.string().describe('Data da transação no formato YYYY-MM-DD. Inferir com base na fala do usuário (ex: hoje, ontem, ou uma data específica).')
+          transaction_date: z.string().describe(`Data da transação no formato YYYY-MM-DD. Se o usuário não especificar a data (ex: não disser "ontem" ou uma data específica), use obrigatoriamente a data de hoje: ${todayStr}`)
         }),
         execute: async ({ type, amount, category, description, transaction_date }: {
           type: 'income' | 'expense';
@@ -71,7 +69,8 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
           description: string;
           transaction_date: string;
         }) => {
-          console.log("Finchat API [cadastrarTransacao]:", { type, amount, category, description, transaction_date });
+          const dateToSave = transaction_date || todayStr;
+          console.log("Finchat API [cadastrarTransacao]:", { type, amount, category, description, dateToSave });
           const { error } = await supabase
             .from('transactions')
             .insert({
@@ -80,7 +79,7 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
               amount,
               category,
               description,
-              transaction_date
+              transaction_date: dateToSave
             });
           
           if (error) {

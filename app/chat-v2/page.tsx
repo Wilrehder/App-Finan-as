@@ -114,6 +114,10 @@ export default function ChatV2Page() {
         streamRef.current = stream;
       }
 
+      if (!stream) {
+        throw new Error("Microphone stream not available");
+      }
+
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       const audioContext = new AudioCtx();
       audioCtxRef.current = audioContext;

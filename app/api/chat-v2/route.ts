@@ -7,7 +7,7 @@ import { syncRecurringTransactions } from "@/lib/sync";
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages, clientDate } = await req.json();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   }
 
   // Determine current date/time in Brazil for context
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const todayStr = clientDate || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
   const [yearStr, monthStr, dayStr] = todayStr.split('-');
   const currentYear = parseInt(yearStr);
   const currentMonth = parseInt(monthStr);

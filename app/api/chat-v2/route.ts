@@ -7,7 +7,9 @@ import { syncRecurringTransactions } from "@/lib/sync";
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages, clientDate } = await req.json();
+  const { searchParams } = new URL(req.url);
+  const clientDate = searchParams.get('clientDate');
+  const { messages } = await req.json();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

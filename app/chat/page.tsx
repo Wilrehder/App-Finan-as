@@ -241,11 +241,10 @@ export default function ChatPage() {
   }, []);
   
   const { messages, setMessages, sendMessage, status, error } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat-v2" }),
+    transport: new DefaultChatTransport({
+      api: `/api/chat-v2?clientDate=${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })}`
+    }),
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-    body: {
-      clientDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    },
     messages: [
       {
         id: "1",

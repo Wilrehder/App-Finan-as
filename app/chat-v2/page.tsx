@@ -241,10 +241,9 @@ export default function ChatV2Page() {
   }, []);
   
   const { messages, setMessages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat-v2" }),
-    body: {
-      clientDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    },
+    transport: new DefaultChatTransport({
+      api: `/api/chat-v2?clientDate=${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })}`
+    }),
     messages: [
       {
         id: "1",

@@ -39,11 +39,11 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
 
 **REGRAS IMPORTANTES:**
 1. Sempre responda de forma amigável e natural, como um assistente no WhatsApp brasileiro.
-2. REQUISITO DE CONFIRMAÇÃO (CRÍTICO): Antes de executar qualquer ferramenta que altere dados ('cadastrarTransacao', 'cadastrarContaFixa', 'deletarTransacao', 'criarObjetivo', 'registrarAporteObjetivo'), você deve apresentar os detalhes da ação para o usuário e pedir a confirmação dele de forma explícita. A sua mensagem deve terminar exatamente com uma pergunta de confirmação, como "Você confirma?" ou "Posso confirmar?". NÃO chame a ferramenta de alteração neste turno. Aguarde o usuário responder. Só execute a ferramenta no turno seguinte se o usuário responder "aceitar", "sim" ou confirmar de forma positiva.
+2. REQUISITO DE CONFIRMAÇÃO (CRÍTICO): Antes de executar qualquer ferramenta que altere dados ('cadastrarTransacao', 'cadastrarContaFixa', 'deletarTransacao', 'criarObjetivo', 'registrarAporteObjetivo', 'deletarObjetivo'), você deve apresentar os detalhes da ação para o usuário e pedir a confirmação dele de forma explícita. A sua mensagem deve terminar exatamente com uma pergunta de confirmação, como "Você confirma?" ou "Posso confirmar?". NÃO chame a ferramenta de alteração neste turno. Aguarde o usuário responder. Só execute a ferramenta no turno seguinte se o usuário responder "aceitar", "sim" ou confirmar de forma positiva.
 3. Se o usuário passar informações de transação (gasto, ganho, fixo) ou pedir para realizar uma ação de alteração, primeiro prepare a resposta de confirmação descrita na Regra 2 sem chamar a ferramenta.
 4. Se o usuário perguntar o que comprou, no que gastou, qual foi o maior gasto, onde gastou mais, ou pedir detalhes das transações, use a ferramenta 'gerarRelatorio' imediatamente (sem pedir confirmação) para buscar as transações daquele período e depois responda de acordo com o pedido.
 5. Se o usuário pedir para apagar uma transação, você deve primeiro consultar as transações (com 'gerarRelatorio' para o período relevante) para descobrir o ID da transação. Em seguida, peça a confirmação do usuário (Regra 2) antes de chamar 'deletarTransacao'.
-6. Para metas/objetivos, use 'listarObjetivos' imediatamente para ver o saldo e progresso das metas. Se for criar um novo objetivo ('criarObjetivo') ou registrar aporte ('registrarAporteObjetivo'), peça a confirmação do usuário (Regra 2) antes de executar.
+6. Para metas/objetivos, use 'listarObjetivos' imediatamente para ver o saldo e progresso das metas. Se for criar um novo objetivo ('criarObjetivo'), registrar aporte ('registrarAporteObjetivo') ou excluir um objetivo ('deletarObjetivo'), peça a confirmação do usuário (Regra 2) antes de executar. Para excluir ou aportar, primeiro use 'listarObjetivos' para encontrar o ID correto se necessário.
 7. SEMPRE formate valores monetários no padrão brasileiro (ex: R$ 1.500,00).
 8. Após usar uma ferramenta de alteração (no turno após a confirmação), diga ao usuário que a ação foi concluída com sucesso de forma amigável.
 9. Se você chamar 'gerarRelatorio' e ele retornar zero transações ou não contiver alguma transação recém-cadastrada, chame imediatamente 'listarUltimasTransacoes' sem data de filtro para verificar o estado real do banco de dados e diagnosticar se o cadastro foi feito sob outra data, explicando isso claramente ao usuário.
@@ -344,6 +344,25 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
               created_at: t.created_at
             }))
           };
+        }
+      }),
+      deletarObjetivo: tool({
+        description: 'Exclui um objetivo/meta financeira existente no banco de dados usando o ID do objetivo.',
+        inputSchema: z.object({
+          goal_id: z.string().describe('O ID (UUID) único do objetivo/meta a ser excluído. Deve ser obtido previamente consultando os objetivos.')
+        }),
+        execute: async ({ goal_id }: { goal_id: string }) => {
+          console.log("Finchat API [deletarObjetivo] requested for ID:", goal_id);
+          const { error } = await supabase
+            .from('goals')
+            .delete()
+            .eq('id', goal_id)
+            .eq('user_id', user.id);
+
+          if (error) {
+            return { success: false, message: 'Erro ao excluir objetivo: ' + error.message };
+          }
+          return { success: true, message: 'Objetivo excluído com sucesso!' };
         }
       })
     }

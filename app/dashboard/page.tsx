@@ -9,13 +9,38 @@ import { ExportPdfButton } from "@/components/export-pdf-button"
 import { NotificationBell } from "@/components/notification-bell"
 import { TransactionList } from "@/components/transaction-list"
 import { FinInsights } from "@/components/fin-insights"
+import { getCalendarEvents, CalendarEvent } from "@/app/calendario/actions"
 import Link from "next/link"
+
+// Helper para formatar data dos eventos do widget
+function formatEventDate(eventDateStr: string, todayDateStr: string) {
+  if (eventDateStr === todayDateStr) return "Hoje";
+  
+  const [ty, tm, td] = todayDateStr.split('-').map(Number);
+  const [ey, em, ed] = eventDateStr.split('-').map(Number);
+  
+  const tDate = new Date(ty, tm - 1, td);
+  const eDate = new Date(ey, em - 1, ed);
+  
+  const diffTime = eDate.getTime() - tDate.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 1) return "Amanhã";
+  
+  const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  return `${ed} de ${months[em - 1]}`;
+}
 
 export const revalidate = 30 // revalida a cada 30 segundos
 
 export default async function DashboardPage(props: { searchParams: Promise<{ month?: string; year?: string; type?: 'all'|'income'|'expense'; date?: string; period?: string }> }) {
   const searchParams = await props.searchParams
-  
+
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  const [yearStr, monthStr, dayStr] = todayStr.split('-')
+  const currentYear = parseInt(yearStr)
+  const currentMonth = parseInt(monthStr)
+
   const filters = {
     month: searchParams.month ? parseInt(searchParams.month) : undefined,
     year: searchParams.year ? parseInt(searchParams.year) : undefined,
@@ -28,9 +53,10 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
   syncRecurringTransactions()
 
   // Queries paralelas — não esperam uma a outra
-  const [data, availablePeriods] = await Promise.all([
+  const [data, availablePeriods, calendarRes] = await Promise.all([
     getDashboardData(filters),
-    getAvailablePeriods()
+    getAvailablePeriods(),
+    getCalendarEvents(new Date().getFullYear())
   ])
 
   // Filtragem local das transações do extrato
@@ -39,6 +65,19 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
     if (currentType === 'all') return true
     return t.type === currentType
   })
+
+  // Filtragem de eventos para o widget de calendário
+  const allEvents = calendarRes.success && calendarRes.events ? calendarRes.events : []
+  const todayEvents = allEvents.filter((e: CalendarEvent) => e.date === todayStr)
+  const upcomingEvents = allEvents
+    .filter((e: CalendarEvent) => e.date > todayStr)
+    .sort((a: CalendarEvent, b: CalendarEvent) => a.date.localeCompare(b.date))
+    .slice(0, 2)
+
+  const weekdays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"]
+  const monthsList = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+  const todayDateObj = new Date(currentYear, currentMonth - 1, parseInt(dayStr))
+  const weekdayName = weekdays[todayDateObj.getDay()]
 
   return (
     <div className="flex flex-col min-h-screen p-4 pb-24 space-y-6 animate-in fade-in duration-500 pt-8">
@@ -129,6 +168,85 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
           </div>
         </CardContent>
       </Card>
+
+      {/* Widget de Calendário Customizado */}
+      <Link href="/calendario" className="block group animate-in fade-in zoom-in-95 duration-500 delay-75">
+        <Card className="bg-secondary/20 hover:bg-secondary/35 border border-white/5 hover:border-primary/20 transition-all duration-300 shadow-md rounded-3xl p-4 overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-3 opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity">
+            <span className="text-5xl">📅</span>
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Bloco de Data Modernizado */}
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 flex flex-col items-center justify-center border border-white/5 shadow-md flex-shrink-0">
+              <span className="text-[9px] font-bold tracking-widest text-rose-500 uppercase mb-0.5">
+                {weekdayName}
+              </span>
+              <span className="text-3xl font-extrabold text-white leading-none tracking-tight">
+                {dayStr}
+              </span>
+              <span className="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider mt-1">
+                {monthsList[currentMonth - 1]}
+              </span>
+            </div>
+
+            {/* Eventos */}
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Compromissos
+                </span>
+                <span className="text-[10px] text-primary font-medium group-hover:underline flex items-center gap-0.5">
+                  Ver todos <ChevronRight size={10} />
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                {todayEvents.length === 0 && upcomingEvents.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2">
+                    Nenhum compromisso agendado para os próximos dias.
+                  </p>
+                ) : (
+                  <>
+                    {/* Eventos de Hoje */}
+                    {todayEvents.slice(0, 1).map(e => (
+                      <div key={e.id} className="flex items-center justify-between text-xs py-0.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            e.type === 'income' ? 'bg-green-500' :
+                            e.type === 'expense' ? 'bg-rose-500' :
+                            e.type === 'reminder' ? 'bg-amber-500' : 'bg-indigo-500'
+                          }`} />
+                          <span className="font-medium truncate text-foreground">{e.description}</span>
+                        </div>
+                        <span className="text-[10px] font-semibold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">
+                          Hoje
+                        </span>
+                      </div>
+                    ))}
+
+                    {/* Próximos Eventos */}
+                    {upcomingEvents.map(e => (
+                      <div key={e.id} className="flex items-center justify-between text-xs py-0.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            e.type === 'income' ? 'bg-green-500' :
+                            e.type === 'expense' ? 'bg-rose-500' :
+                            e.type === 'reminder' ? 'bg-amber-500' : 'bg-indigo-500'
+                          }`} />
+                          <span className="truncate text-muted-foreground">{e.description}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground flex-shrink-0 ml-2">
+                          {formatEventDate(e.date, todayStr)}
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+      </Link>
 
       <Link id="tour-dashboard-goals" href="/objetivos" className="block animate-in fade-in zoom-in-95 duration-500 delay-100">
         <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 hover:border-indigo-500/40 transition-colors shadow-sm relative overflow-hidden">

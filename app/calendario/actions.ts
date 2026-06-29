@@ -49,11 +49,19 @@ export async function getCalendarEvents(year: number) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, events: [] }
 
-  const [ { data: recurring }, { data: reminders }, { data: goals } ] = await Promise.all([
+  const [ { data: recurring }, { data: reminders }, { data: goals }, { data: deletedTx } ] = await Promise.all([
     supabase.from('recurring_transactions').select('*').eq('user_id', user.id),
     supabase.from('reminders').select('*').eq('user_id', user.id).eq('is_active', true),
-    supabase.from('goals').select('*, goal_deposits(amount)').eq('user_id', user.id)
+    supabase.from('goals').select('*, goal_deposits(amount)').eq('user_id', user.id),
+    supabase.from('transactions').select('recurring_id, transaction_date').eq('user_id', user.id).not('recurring_id', 'is', null).like('description', '[DELETED]%')
   ]);
+
+  const deletedSet = new Set<string>()
+  if (deletedTx) {
+    deletedTx.forEach(tx => {
+      deletedSet.add(`${tx.recurring_id}-${tx.transaction_date}`)
+    })
+  }
 
   const events: CalendarEvent[] = [];
 
@@ -72,6 +80,11 @@ export async function getCalendarEvents(year: number) {
 
         const mm = String(month + 1).padStart(2, '0');
         const dd = String(targetDay).padStart(2, '0');
+        const eventDate = `${year}-${mm}-${dd}`;
+
+        if (deletedSet.has(`${rec.id}-${eventDate}`)) {
+          continue;
+        }
 
         events.push({
           id: `${rec.id}-${year}-${mm}`,
@@ -79,7 +92,7 @@ export async function getCalendarEvents(year: number) {
           type: rec.type,
           amount: Number(rec.amount),
           description: rec.description,
-          date: `${year}-${mm}-${dd}`,
+          date: eventDate,
           day_of_month: rec.day_of_month,
           is_business_day: rec.is_business_day
         });

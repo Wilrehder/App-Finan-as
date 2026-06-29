@@ -130,8 +130,8 @@ export async function getDashboardData(filters?: DashboardFilters) {
   if (resGoalsCurrent.error) console.error(resGoalsCurrent.error)
   if (resGoalsPrev.error) console.error(resGoalsPrev.error)
 
-  const transactions = resCurrent.data || []
-  const prevTransactions = resPrev.data || []
+  const transactions = (resCurrent.data || []).filter(t => !t.description?.startsWith('[DELETED]'))
+  const prevTransactions = (resPrev.data || []).filter(t => !t.description?.startsWith('[DELETED]'))
 
   let income = 0
   let expense = 0

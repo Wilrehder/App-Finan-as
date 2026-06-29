@@ -165,13 +165,15 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
             query = query.eq('type', report_type);
           }
 
-          const { data: transactions, error } = await query;
+          const { data, error } = await query;
           
-          console.log("Finchat API [gerarRelatorio] database count:", transactions?.length, "error:", error);
+          console.log("Finchat API [gerarRelatorio] database count:", data?.length, "error:", error);
           
-          if (error || !transactions) {
+          if (error || !data) {
             return { success: false, message: 'Erro ao buscar dados de relatório no banco de dados.' };
           }
+
+          const transactions = data.filter(t => !t.description?.startsWith('[DELETED]'));
 
           let income = 0;
           let expense = 0;
@@ -205,11 +207,32 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
           transaction_id: z.string().describe('O ID (UUID) único da transação a ser excluída. Deve ser obtido previamente consultando as transações.')
         }),
         execute: async ({ transaction_id }: { transaction_id: string }) => {
-          const { error } = await supabase
+          // Busca a transação para saber se é recorrente
+          const { data: tx } = await supabase
             .from('transactions')
-            .delete()
+            .select('recurring_id, description')
             .eq('id', transaction_id)
-            .eq('user_id', user.id);
+            .eq('user_id', user.id)
+            .single();
+
+          let error;
+          if (tx && tx.recurring_id) {
+            // Se for recorrente, apenas marcamos como deletada no título para evitar que o sync a recrie
+            const res = await supabase
+              .from('transactions')
+              .update({ description: `[DELETED] ${tx.description}` })
+              .eq('id', transaction_id)
+              .eq('user_id', user.id);
+            error = res.error;
+          } else {
+            // Se não for recorrente, deleta fisicamente
+            const res = await supabase
+              .from('transactions')
+              .delete()
+              .eq('id', transaction_id)
+              .eq('user_id', user.id);
+            error = res.error;
+          }
 
           if (error) {
             return { success: false, message: 'Erro ao excluir transação: ' + error.message };
@@ -326,15 +349,18 @@ Hoje é ${todayStr} (Ano ${currentYear}, Mês ${currentMonth}).
             .select('*')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
-            .limit(10);
+            .limit(25);
 
           console.log("Finchat API [listarUltimasTransacoes] returned:", data?.length, "error:", error);
           if (error || !data) {
             return { success: false, message: 'Erro ao buscar últimas transações.' };
           }
+
+          const filteredData = data.filter(t => !t.description?.startsWith('[DELETED]')).slice(0, 10);
+
           return {
             success: true,
-            transactions: data.map(t => ({
+            transactions: filteredData.map(t => ({
               id: t.id,
               type: t.type,
               amount: Number(t.amount),

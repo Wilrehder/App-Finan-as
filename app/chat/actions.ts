@@ -255,7 +255,7 @@ export async function deleteLastTransaction() {
   // Find the most recently created transaction
   const { data: lastTx, error: fetchError } = await supabase
     .from('transactions')
-    .select('id, description, amount, type')
+    .select('id, description, amount, type, recurring_id')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -265,11 +265,22 @@ export async function deleteLastTransaction() {
     return { success: false, message: "Não encontrei nenhuma transação recente para apagar." }
   }
 
-  // Delete it
-  const { error: deleteError } = await supabase
-    .from('transactions')
-    .delete()
-    .eq('id', lastTx.id)
+  let deleteError;
+  if (lastTx.recurring_id) {
+    // Se for recorrente, apenas marcamos como deletada no título para evitar que o sync a recrie
+    const res = await supabase
+      .from('transactions')
+      .update({ description: `[DELETED] ${lastTx.description}` })
+      .eq('id', lastTx.id)
+    deleteError = res.error
+  } else {
+    // Se não for recorrente, deleta fisicamente
+    const res = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', lastTx.id)
+    deleteError = res.error
+  }
 
   if (deleteError) {
     return { success: false, message: "Erro ao tentar apagar a transação." }

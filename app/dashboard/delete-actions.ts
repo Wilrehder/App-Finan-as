@@ -8,11 +8,32 @@ export async function deleteTransaction(id: string) {
   const { data: { user }, error: userError } = await supabase.auth.getUser()
   if (userError || !user) return { success: false, message: "Não autorizado" }
 
-  const { error } = await supabase
+  // Busca a transação para saber se é recorrente
+  const { data: tx } = await supabase
     .from("transactions")
-    .delete()
+    .select("recurring_id, description")
     .eq("id", id)
     .eq("user_id", user.id)
+    .single()
+
+  let error;
+  if (tx && tx.recurring_id) {
+    // Se for recorrente, apenas marcamos como deletada no título para evitar que o sync a recrie
+    const res = await supabase
+      .from("transactions")
+      .update({ description: `[DELETED] ${tx.description}` })
+      .eq("id", id)
+      .eq("user_id", user.id)
+    error = res.error
+  } else {
+    // Se não for recorrente, deleta fisicamente
+    const res = await supabase
+      .from("transactions")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id)
+    error = res.error
+  }
 
   if (error) return { success: false, message: "Erro ao excluir transação" }
 

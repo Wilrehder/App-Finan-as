@@ -92,9 +92,10 @@ Regras:
    - Se o usuário especificar apenas despesas ("gastei", "despesas") ou apenas receitas ("ganhei", "receitas"), preencha 'report_type' com 'expense' ou 'income'.
 7. 'create_goal': Para criar metas financeiras/objetivos ("Quero juntar dinheiro para uma viagem", "Criar meta de 20 mil até dezembro todo dia 10").
    - Preencha 'goal_name', 'goal_target_amount', 'goal_deadline' (YYYY-MM-DD) e 'goal_frequency' ('daily', 'weekly' ou 'monthly').
-   - Se for 'monthly' e houver dia específico ("todo dia 10"), preencha 'goal_payment_day'.
    - Escolha um emoji coerente com o objetivo e preencha 'goal_icon'.
-   - Se faltar algum dado essencial (nome, valor desejado, data limite, frequência ou dia de pagamento se for mensal), retorne a intent 'create_goal' e use 'reply_message' para perguntar o que falta.
+   - Se a frequência for mensal ('monthly') e o usuário não disser o dia do mês (ex: "todo dia 10"), defina 'goal_payment_day' como null/undefined e pergunte na 'reply_message' o dia do mês (ex: "Em qual dia do mês você quer fazer os aportes?").
+   - Se a frequência for semanal ('weekly') e o usuário não disser o dia da semana (ex: "toda segunda-feira"), defina 'goal_payment_day' como null/undefined e pergunte na 'reply_message' o dia da semana (ex: "Em qual dia da semana você quer fazer os aportes?"). Se ele disser o dia da semana, preencha 'goal_payment_day' com o número correspondente (0 = Domingo, 1 = Segunda, ..., 6 = Sábado).
+   - Se faltar algum dado essencial (nome, valor desejado, data limite, frequência ou dia de pagamento se for mensal/semanal), retorne a intent 'create_goal' e use 'reply_message' para perguntar o que falta, sem terminar com "Você confirma?" ou "Posso confirmar?".
 8. 'goal_deposit': Para registrar dinheiro guardado ou pagamento de parcelas para uma meta ("Guardei 300 reais pro setup", "Paguei a parcela da viagem").
    - Preencha 'amount' (o valor da parcela/aporte) e 'goal_name' (o nome do objetivo para vincular).
    - ATENÇÃO: Se o usuário disser "paguei a parcela", NÃO é 'register', É 'goal_deposit'.

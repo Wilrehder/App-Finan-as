@@ -9,7 +9,7 @@ export async function getGoals() {
 
   const { data: goals, error } = await supabase
     .from('goals')
-    .select('*, goal_deposits(amount)')
+    .select('*, goal_deposits(*)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -51,6 +51,11 @@ export async function getGoals() {
     const amountPerPeriod = periods > 0 ? remainingAmount / periods : 0;
     const percentage = Math.min((totalSaved / targetAmount) * 100, 100);
 
+    // Ordena os depósitos por data decrescente para o histórico
+    const sortedDeposits = [...goal.goal_deposits].sort((a: any, b: any) => {
+      return new Date(b.deposit_date || b.created_at).getTime() - new Date(a.deposit_date || a.created_at).getTime()
+    })
+
     return {
       id: goal.id,
       name: goal.name,
@@ -58,13 +63,15 @@ export async function getGoals() {
       totalSaved,
       deadline: goal.deadline,
       frequency: goal.frequency,
+      payment_day: goal.payment_day,
       icon: goal.icon,
       percentage,
       remainingAmount,
       periods,
       amountPerPeriod,
       originalAmountPerPeriod,
-      totalPeriods
+      totalPeriods,
+      deposits: sortedDeposits
     }
   })
 }

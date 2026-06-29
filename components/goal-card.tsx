@@ -16,6 +16,17 @@ export function GoalCard({ goal }: GoalCardProps) {
   const isCompleted = goal.percentage >= 100;
   const periodLabel = goal.frequency === 'daily' ? 'dia' : goal.frequency === 'weekly' ? 'semana' : 'mês';
 
+  const getInstallmentInfo = (g: any) => {
+    if (g.frequency === 'monthly') {
+      return g.payment_day ? `Todo dia ${g.payment_day}` : 'Mensal';
+    }
+    if (g.frequency === 'weekly') {
+      const weekdays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+      return g.payment_day !== null && g.payment_day !== undefined ? `Toda ${weekdays[g.payment_day]}` : 'Semanal';
+    }
+    return 'Diário';
+  }
+
   return (
     <>
       <Card 
@@ -30,7 +41,12 @@ export function GoalCard({ goal }: GoalCardProps) {
                 {goal.icon || '🎯'}
               </div>
               <div>
-                <h3 className="font-bold text-lg leading-tight">{goal.name}</h3>
+                <h3 className="font-bold text-lg leading-tight flex flex-wrap items-center gap-2">
+                  {goal.name}
+                  <span className="text-[10px] bg-secondary px-2 py-0.5 rounded-full text-muted-foreground font-semibold">
+                    {getInstallmentInfo(goal)}
+                  </span>
+                </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   R$ {goal.totalSaved.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / 
                   R$ {goal.targetAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

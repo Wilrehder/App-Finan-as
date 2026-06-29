@@ -205,7 +205,7 @@ export async function getCalendarEvents(year: number) {
           }
         }
       } else if (goal.frequency === 'monthly') {
-        const targetDay = createdDate.getDate();
+        const targetDay = goal.payment_day !== null && goal.payment_day !== undefined ? goal.payment_day : createdDate.getDate();
         for (let month = 0; month < 12; month++) {
           const maxDays = new Date(year, month + 1, 0).getDate();
           const d = Math.min(targetDay, maxDays);
@@ -221,7 +221,7 @@ export async function getCalendarEvents(year: number) {
           }
         }
       } else if (goal.frequency === 'weekly') {
-        const targetDayOfWeek = createdDate.getDay();
+        const targetDayOfWeek = goal.payment_day !== null && goal.payment_day !== undefined ? goal.payment_day : createdDate.getDay();
         for (let month = 0; month < 12; month++) {
           const days = new Date(year, month + 1, 0).getDate();
           for (let d = 1; d <= days; d++) {

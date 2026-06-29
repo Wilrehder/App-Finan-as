@@ -71,6 +71,17 @@ export function GoalDetailsModal({ goal, onClose }: GoalDetailsModalProps) {
 
   if (!mounted) return null;
 
+  const getInstallmentInfo = (g: any) => {
+    if (g.frequency === 'monthly') {
+      return g.payment_day ? `Todo dia ${g.payment_day}` : 'Mensal';
+    }
+    if (g.frequency === 'weekly') {
+      const weekdays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+      return g.payment_day !== null && g.payment_day !== undefined ? `Toda ${weekdays[g.payment_day]}` : 'Semanal';
+    }
+    return 'Diário';
+  }
+
   const isCompleted = goal.percentage >= 100;
   const totalPeriods = goal.totalPeriods || goal.periods;
   const amountPerInstallment = goal.originalAmountPerPeriod || (goal.targetAmount / totalPeriods);
@@ -116,9 +127,14 @@ export function GoalDetailsModal({ goal, onClose }: GoalDetailsModalProps) {
               <p className="text-3xl font-bold text-primary">
                 R$ {goal.totalSaved.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="text-sm text-muted-foreground">
-                de R$ {goal.targetAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <span className="text-sm text-muted-foreground">
+                  de R$ {goal.targetAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span className="text-[10px] bg-secondary px-2.5 py-1 rounded-full text-muted-foreground font-bold uppercase tracking-wider">
+                  {getInstallmentInfo(goal)}
+                </span>
+              </div>
             </div>
             <span className={`text-2xl font-bold ${isCompleted ? 'text-green-500' : 'text-primary'}`}>
               {goal.percentage.toFixed(0)}%
@@ -184,6 +200,37 @@ export function GoalDetailsModal({ goal, onClose }: GoalDetailsModalProps) {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Histórico de Aportes */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Histórico de Aportes</h4>
+          {goal.deposits && goal.deposits.length > 0 ? (
+            <div className="space-y-2">
+              {goal.deposits.map((dep: any, idx: number) => {
+                const dateStr = dep.deposit_date ? dep.deposit_date.split('-').reverse().join('/') : 'Data N/A';
+                return (
+                  <div key={dep.id || idx} className="flex justify-between items-center bg-secondary/15 hover:bg-secondary/25 p-4 rounded-2xl border border-white/5 transition-colors">
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-sm text-foreground">
+                        Aporte Realizado
+                      </span>
+                      <span className="text-xs text-muted-foreground mt-0.5">
+                        Feito em {dateStr}
+                      </span>
+                    </div>
+                    <span className="font-bold text-sm text-green-500">
+                      + R$ {Number(dep.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-4 bg-secondary/5 rounded-2xl border border-white/5">
+              Nenhum aporte registrado ainda.
+            </p>
+          )}
         </div>
 
       </div>

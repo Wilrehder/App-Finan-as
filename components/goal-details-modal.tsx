@@ -84,20 +84,55 @@ export function GoalDetailsModal({ goal, onClose }: GoalDetailsModalProps) {
 
   const isCompleted = goal.percentage >= 100;
   const totalPeriods = goal.totalPeriods || goal.periods;
-  const amountPerInstallment = goal.originalAmountPerPeriod || (goal.targetAmount / totalPeriods);
+  const originalAmountPerPeriod = goal.originalAmountPerPeriod || (goal.targetAmount / totalPeriods);
   
   // Mapeia os depósitos em ordem cronológica (do mais antigo para o mais recente)
   const depositsAsc = goal.deposits ? [...goal.deposits].reverse() : [];
-  const paidPeriods = Math.min(depositsAsc.length, totalPeriods);
-  const remainingPeriods = Math.max(totalPeriods - paidPeriods, 0);
+  
+  let currentInstallmentAmount = originalAmountPerPeriod;
+  let totalSavedSoFar = 0;
+  
+  const paidInstallments: { index: number; amount: number }[] = [];
+  const extraDeposits: any[] = [];
+
+  depositsAsc.forEach((dep: any) => {
+    const depAmount = Number(dep.amount);
+    // Considera regular se for igual ao valor esperado no momento (com tolerância a arredondamentos)
+    const isRegular = Math.abs(depAmount - currentInstallmentAmount) < 0.05;
+
+    if (isRegular && paidInstallments.length < totalPeriods) {
+      // É um pagamento de parcela regular
+      totalSavedSoFar += depAmount;
+      paidInstallments.push({
+        index: paidInstallments.length + 1,
+        amount: depAmount
+      });
+    } else {
+      // É um aporte extra
+      totalSavedSoFar += depAmount;
+      extraDeposits.push(dep);
+      
+      // Recalcula o valor das parcelas restantes com base no novo saldo
+      const remainingPeriods = Math.max(totalPeriods - paidInstallments.length, 0);
+      const remainingAmount = Math.max(goal.targetAmount - totalSavedSoFar, 0);
+      if (remainingPeriods > 0) {
+        currentInstallmentAmount = remainingAmount / remainingPeriods;
+      } else {
+        currentInstallmentAmount = 0;
+      }
+    }
+  });
+
+  // O valor final recalculado para exibir nas parcelas pendentes
+  const remainingPeriods = Math.max(totalPeriods - paidInstallments.length, 0);
   const remainingAmount = Math.max(goal.targetAmount - goal.totalSaved, 0);
   const dynamicAmountPerPeriod = remainingPeriods > 0 ? remainingAmount / remainingPeriods : 0;
   
   // Create an array representing the installments
   const installments = Array.from({ length: totalPeriods }, (_, i) => {
-    const isPaid = i < paidPeriods || isCompleted;
+    const isPaid = i < paidInstallments.length || isCompleted;
     const amount = isPaid 
-      ? Number(depositsAsc[i]?.amount || amountPerInstallment) 
+      ? (paidInstallments[i]?.amount || originalAmountPerPeriod) 
       : dynamicAmountPerPeriod;
     return {
       index: i + 1,
@@ -210,16 +245,16 @@ export function GoalDetailsModal({ goal, onClose }: GoalDetailsModalProps) {
 
         {/* Histórico de Aportes */}
         <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Histórico de Aportes</h4>
-          {goal.deposits && goal.deposits.length > 0 ? (
+          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Histórico de Aportes Extras</h4>
+          {extraDeposits.length > 0 ? (
             <div className="space-y-2">
-              {goal.deposits.map((dep: any, idx: number) => {
+              {extraDeposits.map((dep: any, idx: number) => {
                 const dateStr = dep.deposit_date ? dep.deposit_date.split('-').reverse().join('/') : 'Data N/A';
                 return (
                   <div key={dep.id || idx} className="flex justify-between items-center bg-secondary/15 hover:bg-secondary/25 p-4 rounded-2xl border border-white/5 transition-colors">
                     <div className="flex flex-col">
                       <span className="font-semibold text-sm text-foreground">
-                        Aporte Realizado
+                        Aporte Extra
                       </span>
                       <span className="text-xs text-muted-foreground mt-0.5">
                         Feito em {dateStr}

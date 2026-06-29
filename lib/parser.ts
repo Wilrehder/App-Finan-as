@@ -82,6 +82,7 @@ Regras:
    - 'type' é 'expense' por padrão, a menos que seja claro que é receita. ISSO É OBRIGATÓRIO.
    - Preencha SEMPRE 'day_of_month' se um dia numérico for mencionado (ex: "todo dia 15" -> "day_of_month": 15).
    - Se disser "dia útil", preencha 'is_business_day': true e coloque o número em 'day_of_month' (ex: "5 dia útil" -> day_of_month: 5).
+   - REGRA DE DIA ÚTIL (CRÍTICO): Se o usuário pedir para cadastrar uma conta fixa e não disser explicitamente se o dia é um "dia útil" ou um "dia corrido/normal" (se ele disser apenas "todo dia 10", por exemplo, sem falar "útil" ou "corrido"), você DEVE classificar o intent como 'incomplete_fixed'. No campo 'reply_message', confirme o que entendeu e pergunte explicitamente se esse dia será um "dia útil" ou "dia corrido" (ex: "Entendido! E esse dia 10 será um dia útil ou dia corrido?"). Não finalize a mensagem com perguntas de confirmação de cadastro.
    - Se faltar o 'amount' ou faltar o dia do mês ('day_of_month'), retorne intent 'incomplete_fixed' e use 'reply_message' para EXPLICAR a maneira correta de cadastrar a despesa e a recorrência juntas. NÃO pergunte o dado que falta. Exemplo: "Para cadastrar uma conta fixa, preciso que você me fale o valor, a descrição e o dia de uma vez. Exemplo: 'Despesa fixa de 12 reais de luz todo dia 10'."
 3. 'manage_fixed': Se o usuário pedir para ver, editar, cancelar assinaturas fixas ("ver minhas contas fixas").
 4. 'delete': Se pedir para apagar/desfazer a última transação ("apaga a última", "desfazer").

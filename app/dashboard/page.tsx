@@ -66,12 +66,37 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
     return t.type === currentType
   })
 
-  // Filtragem de eventos para o widget de calendário
+  // Filtragem de eventos para o widget de calendário (deduplicando recorrentes e metas)
   const allEvents = calendarRes.success && calendarRes.events ? calendarRes.events : []
-  const todayEvents = allEvents.filter((e: CalendarEvent) => e.date === todayStr)
-  const upcomingEvents = allEvents
-    .filter((e: CalendarEvent) => e.date > todayStr)
+  
+  // Ordena todos os eventos a partir de hoje por data
+  const sortedFutureEvents = allEvents
+    .filter((e: CalendarEvent) => e.date >= todayStr)
     .sort((a: CalendarEvent, b: CalendarEvent) => a.date.localeCompare(b.date))
+
+  // Mantém apenas a próxima ocorrência de cada evento recorrente ou meta
+  const uniqueFutureEvents: CalendarEvent[] = []
+  const seenIds = new Set<string>()
+
+  for (const e of sortedFutureEvents) {
+    let baseId = e.id
+    if (e.recurring_id) {
+      baseId = `recurring-${e.recurring_id}`
+    } else if (e.id.startsWith('goal-')) {
+      baseId = e.id.split('-').slice(0, 2).join('-') // e.g. "goal-123"
+    } else if (e.reminder_id) {
+      baseId = `reminder-${e.reminder_id}`
+    }
+
+    if (!seenIds.has(baseId)) {
+      seenIds.add(baseId)
+      uniqueFutureEvents.push(e)
+    }
+  }
+
+  const todayEvents = uniqueFutureEvents.filter((e: CalendarEvent) => e.date === todayStr)
+  const upcomingEvents = uniqueFutureEvents
+    .filter((e: CalendarEvent) => e.date > todayStr)
     .slice(0, 2)
 
   const weekdays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"]

@@ -23,6 +23,7 @@ export default function CalendarioPage() {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
   )
+  const [selectedEventDetails, setSelectedEventDetails] = useState<CalendarEvent | null>(null)
 
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
@@ -96,15 +97,15 @@ export default function CalendarioPage() {
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => setView('month')}
-                className="h-10 px-3 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium flex items-center gap-1 transition-colors"
+                className="h-10 w-10 rounded-xl bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
+                title="Voltar ao Mês"
               >
-                <ChevronLeft size={16} />
-                Voltar ao Mês
+                <ChevronLeft size={20} />
               </button>
               <h1 className="text-3xl font-extrabold text-foreground tracking-tight">{currentYear}</h1>
             </div>
             <div className="flex gap-3 text-primary">
-              <Link href="/dashboard" className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center text-primary hover:bg-secondary/80 transition-colors">
+              <Link href="/dashboard" className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center text-primary hover:bg-secondary/80 transition-colors" title="Painel">
                 <LayoutDashboard size={20} />
               </Link>
             </div>
@@ -172,17 +173,20 @@ export default function CalendarioPage() {
     <div className="min-h-screen bg-background text-foreground pb-24 p-4 pt-8 animate-in fade-in duration-300 flex flex-col max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-6 shrink-0">
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="h-10 px-3 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium flex items-center gap-1 transition-colors">
-            <ChevronLeft size={16} />
-            Painel
+        <div className="flex items-center gap-2">
+          <Link 
+            href="/dashboard" 
+            className="h-10 w-10 rounded-xl bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
+            title="Voltar ao Painel"
+          >
+            <ChevronLeft size={20} />
           </Link>
           <button
             onClick={() => setView('year')}
-            className="h-10 px-3 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium flex items-center gap-1.5 transition-colors text-primary"
+            className="h-10 w-10 rounded-xl bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors text-primary"
+            title="Ver Ano"
           >
-            <Grid size={16} />
-            Ver Ano
+            <Grid size={20} />
           </button>
         </div>
         <div className="flex items-center gap-1 bg-secondary/40 rounded-xl p-0.5 border border-white/5">
@@ -278,7 +282,11 @@ export default function CalendarioPage() {
             </div>
           ) : (
             selectedEvents.map(ev => (
-              <div key={ev.id} className="flex justify-between items-center bg-secondary/15 hover:bg-secondary/25 p-4 rounded-2xl border border-white/5 transition-all duration-200">
+              <div 
+                key={ev.id} 
+                onClick={() => setSelectedEventDetails(ev)}
+                className="flex justify-between items-center bg-secondary/15 hover:bg-secondary/25 p-4 rounded-2xl border border-white/5 transition-all duration-200 cursor-pointer"
+              >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
                     ev.type === 'income' ? 'bg-green-500' : 
@@ -301,7 +309,7 @@ export default function CalendarioPage() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                <div className="flex items-center gap-3 flex-shrink-0 ml-3" onClick={(e) => e.stopPropagation()}>
                   {ev.type !== 'reminder' && (
                     <span className={`font-bold text-sm ${ev.type === 'income' || ev.type === 'goal' ? 'text-green-500' : 'text-foreground'}`}>
                       {ev.type === 'income' || ev.type === 'goal' ? '+' : '-'} R$ {ev.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -309,7 +317,8 @@ export default function CalendarioPage() {
                   )}
                   {ev.type === 'reminder' ? (
                     <button 
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.stopPropagation();
                         if (confirm('Excluir este lembrete?')) {
                           await deleteReminder(ev.reminder_id!);
                           const res = await getCalendarEvents(currentYear);
@@ -338,6 +347,63 @@ export default function CalendarioPage() {
           )}
         </div>
       </div>
+
+      {/* Modal de Detalhes do Compromisso */}
+      {selectedEventDetails && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-secondary border border-white/10 p-6 rounded-3xl max-w-sm w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className={`w-3.5 h-3.5 rounded-full ${
+                selectedEventDetails.type === 'income' ? 'bg-green-500' : 
+                selectedEventDetails.type === 'reminder' ? 'bg-amber-500' : 
+                selectedEventDetails.type === 'goal' ? 'bg-indigo-500' : 'bg-rose-500'
+              }`} />
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {selectedEventDetails.type === 'income' ? 'Receita' :
+                 selectedEventDetails.type === 'expense' ? 'Despesa' :
+                 selectedEventDetails.type === 'reminder' ? 'Lembrete' : 'Meta'}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="text-lg font-bold text-foreground leading-snug break-words">
+                {selectedEventDetails.description}
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                {selectedEventDetails.type === 'reminder' 
+                  ? `Agendado para às ${selectedEventDetails.time}`
+                  : selectedEventDetails.type === 'goal' 
+                  ? `Aporte planejado`
+                  : `Recorrência: ${selectedEventDetails.is_business_day ? `${selectedEventDetails.day_of_month}º dia útil` : `todo dia ${selectedEventDetails.day_of_month}`}`}
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-white/5 flex justify-between items-center">
+              <div>
+                <span className="text-[10px] text-muted-foreground block uppercase font-medium">Data</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {selectedEventDetails.date.split('-').reverse().join('/')}
+                </span>
+              </div>
+              {selectedEventDetails.amount && (
+                <div className="text-right">
+                  <span className="text-[10px] text-muted-foreground block uppercase font-medium">Valor</span>
+                  <span className={`text-base font-bold ${selectedEventDetails.type === 'income' || selectedEventDetails.type === 'goal' ? 'text-green-500' : 'text-foreground'}`}>
+                    R$ {selectedEventDetails.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setSelectedEventDetails(null)}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/95 transition-colors mt-2"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

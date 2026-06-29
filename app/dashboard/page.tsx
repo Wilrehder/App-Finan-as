@@ -1,6 +1,7 @@
 import { getDashboardData, getAvailablePeriods } from "./actions"
 import { syncRecurringTransactions } from "@/lib/sync"
 import { DashboardFilters } from "@/components/dashboard-filters"
+import { TransactionTypeFilter } from "@/components/transaction-type-filter"
 import { ExpenseChart, CHART_COLORS } from "@/components/ExpenseChart"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { ArrowUpIcon, ArrowDownIcon, PieChart, TrendingUp, Calendar, ChevronRight } from "lucide-react"
@@ -20,7 +21,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
     year: searchParams.year ? parseInt(searchParams.year) : undefined,
     date: searchParams.date,
     period: searchParams.period as any,
-    type: searchParams.type
+    type: undefined // Sempre busca tudo para os cards e gráficos
   }
 
   // Sync roda em background sem bloquear a navegação
@@ -31,6 +32,13 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
     getDashboardData(filters),
     getAvailablePeriods()
   ])
+
+  // Filtragem local das transações do extrato
+  const currentType = searchParams.type ?? 'all'
+  const filteredTransactions = data.transactions.filter(t => {
+    if (currentType === 'all') return true
+    return t.type === currentType
+  })
 
   return (
     <div className="flex flex-col min-h-screen p-4 pb-24 space-y-6 animate-in fade-in duration-500 pt-8">
@@ -179,18 +187,19 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
         )}
       </div>
 
-      <div id="tour-dashboard-transactions" className="space-y-4">
+      <div id="tour-dashboard-transactions" className="space-y-4 animate-in fade-in slide-in-from-bottom duration-500 delay-200">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold tracking-tight">Extrato do Período</h2>
           <ExportPdfButton
-            transactions={data.transactions}
+            transactions={filteredTransactions}
             income={data.income}
             expense={data.expense}
             balance={data.balance}
             periodLabel={`${new Date(filters.year ?? new Date().getFullYear(), filters.month ?? new Date().getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`}
           />
         </div>
-        <TransactionList transactions={data.transactions} />
+        <TransactionTypeFilter />
+        <TransactionList transactions={filteredTransactions} />
       </div>
     </div>
   )

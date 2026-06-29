@@ -22,7 +22,6 @@ export function DashboardFilters({
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  const typeParam = searchParams.get("type") ?? "all"
   const period = searchParams.get("period") ?? "month"
   let baseDateStr = searchParams.get("date")
 
@@ -95,11 +94,7 @@ export function DashboardFilters({
   // Para mês usamos a checagem anterior
   const isCurrentMonth = period === 'month' && baseDate.getMonth() === currentMonth && baseDate.getFullYear() === currentYear
 
-  const updateType = (type: string) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("type", type)
-    router.push(`?${params.toString()}`)
-  }
+
 
   return (
     <div className="space-y-3 mb-2 mt-1">
@@ -154,28 +149,6 @@ export function DashboardFilters({
         >
           <ChevronRight size={20} />
         </button>
-      </div>
-
-      {/* Filtro de tipo — pills */}
-      <div className="flex gap-2">
-        {[
-          { value: "all",     label: "Todas" },
-          { value: "income",  label: "Receitas" },
-          { value: "expense", label: "Despesas" },
-          { value: "goal_deposit", label: "Objetivos" },
-        ].map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => updateType(opt.value)}
-            className={`flex-1 h-8 rounded-xl text-xs font-medium transition-colors ${
-              typeParam === opt.value
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
       </div>
     </div>
   )

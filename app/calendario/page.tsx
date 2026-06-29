@@ -79,7 +79,13 @@ export default function CalendarioPage() {
     return acc
   }, {})
 
-  const selectedEvents = events.filter(e => e.date === selectedDate)
+  // Filtra os eventos do mês a partir do dia selecionado (inclusive) até o final do mês
+  const currentMonthStr = String(currentMonth + 1).padStart(2, '0')
+  const monthPrefix = `${currentYear}-${currentMonthStr}`
+
+  const selectedEvents = events
+    .filter(e => e.date.startsWith(monthPrefix) && e.date >= selectedDate)
+    .sort((a, b) => a.date.localeCompare(b.date))
 
   // VIEW: YEAR
   if (view === 'year') {
@@ -255,7 +261,7 @@ export default function CalendarioPage() {
         <div className="flex justify-between items-center mb-4 shrink-0">
           <h3 className="text-base font-bold text-foreground flex items-center gap-2">
             <CalendarDays size={18} className="text-primary" />
-            Compromissos para {selectedDate.split('-').reverse().join('/')}
+            Compromissos a partir de {selectedDate.split('-').reverse().join('/')}
           </h3>
           <span className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase bg-secondary/50 px-2.5 py-1 rounded-full">
             {selectedEvents.length} {selectedEvents.length === 1 ? 'evento' : 'eventos'}
@@ -280,7 +286,12 @@ export default function CalendarioPage() {
                     ev.type === 'goal' ? 'bg-indigo-500' : 'bg-rose-500'
                   }`} />
                   <div className="flex flex-col min-w-0">
-                    <span className="font-semibold text-sm leading-snug text-foreground truncate">{ev.description}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm leading-snug text-foreground truncate">{ev.description}</span>
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md flex-shrink-0">
+                        Dia {ev.date.split('-').reverse().join('/').split('/')[0]}
+                      </span>
+                    </div>
                     <span className="text-[10px] text-muted-foreground mt-0.5">
                       {ev.type === 'reminder' 
                         ? `Lembrete às ${ev.time}`

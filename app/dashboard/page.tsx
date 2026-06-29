@@ -171,78 +171,81 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mon
 
       {/* Widget de Calendário Customizado */}
       <Link href="/calendario" className="block group animate-in fade-in zoom-in-95 duration-500 delay-75">
-        <Card className="bg-secondary/20 hover:bg-secondary/35 border border-white/5 hover:border-primary/20 transition-all duration-300 shadow-md rounded-3xl p-4 overflow-hidden relative">
+        <Card className="bg-secondary/20 hover:bg-secondary/35 border border-white/5 hover:border-primary/20 transition-all duration-300 shadow-md rounded-3xl p-5 overflow-hidden relative">
           <div className="absolute top-0 right-0 p-3 opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity">
             <span className="text-5xl">📅</span>
           </div>
-          <div className="flex items-center gap-4">
-            {/* Bloco de Data Modernizado */}
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 flex flex-col items-center justify-center border border-white/5 shadow-md flex-shrink-0">
-              <span className="text-[9px] font-bold tracking-widest text-rose-500 uppercase mb-0.5">
-                {weekdayName}
-              </span>
-              <span className="text-3xl font-extrabold text-white leading-none tracking-tight">
-                {dayStr}
-              </span>
-              <span className="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider mt-1">
-                {monthsList[currentMonth - 1]}
-              </span>
-            </div>
-
-            {/* Eventos */}
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Compromissos
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* LADO ESQUERDO: Data de Hoje e Eventos de Hoje */}
+            <div className="md:col-span-1 flex flex-col justify-between md:border-r md:border-white/5 md:pr-6">
+              <div>
+                <span className="text-[11px] font-bold tracking-widest text-rose-500 uppercase">
+                  {weekdayName}
                 </span>
-                <span className="text-[10px] text-primary font-medium group-hover:underline flex items-center gap-0.5">
-                  Ver todos <ChevronRight size={10} />
-                </span>
+                <h2 className="text-5xl font-extrabold text-white mt-1 leading-none tracking-tighter">
+                  {dayStr}
+                </h2>
               </div>
-
-              <div className="space-y-1.5">
-                {todayEvents.length === 0 && upcomingEvents.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-2">
-                    Nenhum compromisso agendado para os próximos dias.
+              
+              <div className="mt-4">
+                {todayEvents.length === 0 ? (
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Nenhum Evento Hoje
                   </p>
                 ) : (
-                  <>
-                    {/* Eventos de Hoje */}
-                    {todayEvents.slice(0, 1).map(e => (
-                      <div key={e.id} className="flex items-center justify-between text-xs py-0.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                            e.type === 'income' ? 'bg-green-500' :
-                            e.type === 'expense' ? 'bg-rose-500' :
-                            e.type === 'reminder' ? 'bg-amber-500' : 'bg-indigo-500'
-                          }`} />
-                          <span className="font-medium truncate text-foreground">{e.description}</span>
-                        </div>
-                        <span className="text-[10px] font-semibold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">
-                          Hoje
-                        </span>
+                  <div className="space-y-1.5">
+                    {todayEvents.map(e => (
+                      <div key={e.id} className="flex items-center gap-2 text-xs">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          e.type === 'income' ? 'bg-green-500' :
+                          e.type === 'expense' ? 'bg-rose-500' :
+                          e.type === 'reminder' ? 'bg-amber-500' : 'bg-indigo-500'
+                        }`} />
+                        <span className="font-semibold truncate text-foreground">{e.description}</span>
                       </div>
                     ))}
-
-                    {/* Próximos Eventos */}
-                    {upcomingEvents.map(e => (
-                      <div key={e.id} className="flex items-center justify-between text-xs py-0.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                            e.type === 'income' ? 'bg-green-500' :
-                            e.type === 'expense' ? 'bg-rose-500' :
-                            e.type === 'reminder' ? 'bg-amber-500' : 'bg-indigo-500'
-                          }`} />
-                          <span className="truncate text-muted-foreground">{e.description}</span>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground flex-shrink-0 ml-2">
-                          {formatEventDate(e.date, todayStr)}
-                        </span>
-                      </div>
-                    ))}
-                  </>
+                  </div>
                 )}
               </div>
+            </div>
+
+            {/* LADO DIREITO: Próximos Eventos */}
+            <div className="md:col-span-2 flex flex-col justify-center space-y-4">
+              {upcomingEvents.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4">
+                  Sem compromissos futuros este mês.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingEvents.map(e => {
+                    const eventDateObj = new Date(e.date + 'T00:00:00');
+                    const eventWeekday = weekdays[eventDateObj.getDay()].toUpperCase();
+                    const eventDay = eventDateObj.getDate();
+                    const eventMonthName = monthsList[eventDateObj.getMonth()].toUpperCase();
+                    
+                    return (
+                      <div key={e.id} className="space-y-1">
+                        <span className="text-[10px] font-bold tracking-wider text-muted-foreground/80 uppercase">
+                          {eventWeekday}, {eventDay} DE {eventMonthName}
+                        </span>
+                        <div className="flex items-center gap-2 text-sm bg-white/5 hover:bg-white/10 p-2.5 rounded-xl border border-white/5 transition-colors">
+                          <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                            e.type === 'income' ? 'bg-green-500' :
+                            e.type === 'expense' ? 'bg-rose-500' :
+                            e.type === 'reminder' ? 'bg-amber-500' : 'bg-indigo-500'
+                          }`} />
+                          <span className="font-medium truncate text-foreground flex-1">{e.description}</span>
+                          {e.amount && (
+                            <span className="text-xs font-semibold text-muted-foreground">
+                              R$ {e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </Card>

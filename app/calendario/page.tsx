@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
-import { ChevronLeft, LayoutDashboard, Settings, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { ChevronLeft, ChevronRight, LayoutDashboard, Calendar, Grid, Trash2, CalendarDays } from "lucide-react"
 import { getCalendarEvents, CalendarEvent } from "./actions"
 import Link from "next/link"
 import { EditRecurringModal } from "@/components/edit-recurring-modal"
@@ -12,17 +12,19 @@ const MONTH_NAMES = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ]
 
-const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"]
+const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+const WEEKDAYS_SHORT = ["D", "S", "T", "Q", "Q", "S", "S"]
 
 export default function CalendarioPage() {
-  const [view, setView] = useState<'year' | 'month'>('year')
-  const [currentYear] = useState(new Date().getFullYear())
+  const [view, setView] = useState<'year' | 'month'>('month')
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
   const [events, setEvents] = useState<CalendarEvent[]>([])
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
-  const [monthScrollTarget, setMonthScrollTarget] = useState<number>(new Date().getMonth())
-  const [sheetOpen, setSheetOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  )
 
-  const monthListRef = useRef<HTMLDivElement>(null)
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
   useEffect(() => {
     getCalendarEvents(currentYear).then(res => {
@@ -32,15 +34,6 @@ export default function CalendarioPage() {
     })
   }, [currentYear])
 
-  useEffect(() => {
-    if (view === 'month' && monthListRef.current) {
-      const el = document.getElementById(`month-${monthScrollTarget}`)
-      if (el) {
-        el.scrollIntoView({ behavior: 'auto' })
-      }
-    }
-  }, [view, monthScrollTarget])
-
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate()
   }
@@ -49,25 +42,30 @@ export default function CalendarioPage() {
     return new Date(year, month, 1).getDay()
   }
 
-  const hasEvent = (dateString: string) => events.filter(e => e.date === dateString)
-
-  const handleDayClick = (dateStr: string) => {
-    const eventsForDay = events.filter(e => e.date === dateStr)
-    if (eventsForDay.length > 0) {
-      if (dateStr === selectedDate && sheetOpen) {
-        setSheetOpen(false)
-      } else {
-        setSelectedDate(dateStr)
-        setSheetOpen(true)
-      }
+  const goPrevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11)
+      setCurrentYear(prev => prev - 1)
     } else {
-      setSelectedDate(dateStr)
-      setSheetOpen(false)
+      setCurrentMonth(prev => prev - 1)
     }
   }
 
+  const goNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0)
+      setCurrentYear(prev => prev + 1)
+    } else {
+      setCurrentMonth(prev => prev + 1)
+    }
+  }
+
+  const handleDayClick = (dateStr: string) => {
+    setSelectedDate(dateStr)
+  }
+
   const handleMonthClick = (monthIndex: number) => {
-    setMonthScrollTarget(monthIndex)
+    setCurrentMonth(monthIndex)
     setView('month')
   }
 
@@ -81,23 +79,33 @@ export default function CalendarioPage() {
     return acc
   }, {})
 
-  const selectedEvents = hasEvent(selectedDate)
+  const selectedEvents = events.filter(e => e.date === selectedDate)
 
-  // YEAR VIEW
+  // VIEW: YEAR
   if (view === 'year') {
     return (
-      <div className="min-h-screen bg-background text-foreground pb-20">
-        <div className="pt-12 px-5 sticky top-0 bg-background/90 backdrop-blur-md z-10 pb-2">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-4xl font-bold text-red-500 tracking-tight">{currentYear}</h1>
-            <div className="flex gap-4 text-primary">
-              <Link href="/dashboard"><LayoutDashboard size={22} /></Link>
-              <Link href="/configuracoes"><Settings size={22} /></Link>
+      <div className="min-h-screen bg-background text-foreground pb-20 p-4 pt-8 animate-in fade-in duration-300">
+        <div className="sticky top-0 bg-background/90 backdrop-blur-md z-10 pb-4 mb-4 border-b border-white/5">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setView('month')}
+                className="h-10 px-3 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium flex items-center gap-1 transition-colors"
+              >
+                <ChevronLeft size={16} />
+                Voltar ao Mês
+              </button>
+              <h1 className="text-3xl font-extrabold text-foreground tracking-tight">{currentYear}</h1>
+            </div>
+            <div className="flex gap-3 text-primary">
+              <Link href="/dashboard" className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center text-primary hover:bg-secondary/80 transition-colors">
+                <LayoutDashboard size={20} />
+              </Link>
             </div>
           </div>
         </div>
 
-        <div className="px-5 grid grid-cols-3 gap-x-4 gap-y-8 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">
           {MONTH_NAMES.map((monthName, monthIndex) => {
             const daysInMonth = getDaysInMonth(currentYear, monthIndex)
             const firstDay = getFirstDayOfMonth(currentYear, monthIndex)
@@ -105,29 +113,35 @@ export default function CalendarioPage() {
             const blanks = Array.from({ length: firstDay }, (_, i) => i)
 
             return (
-              <div key={monthName} onClick={() => handleMonthClick(monthIndex)} className="cursor-pointer">
-                <h3 className="text-[14px] font-bold text-red-500 mb-1">{monthName}</h3>
-                <div className="grid grid-cols-7 gap-x-[2px] gap-y-0.5 text-[8px] text-muted-foreground font-medium mb-1">
-                  {WEEKDAYS.map((d, i) => <div key={i} className="text-center">{d}</div>)}
+              <div 
+                key={monthName} 
+                onClick={() => handleMonthClick(monthIndex)} 
+                className="cursor-pointer bg-secondary/10 hover:bg-secondary/20 border border-white/5 rounded-2xl p-4 transition-all duration-250 hover:scale-[1.02]"
+              >
+                <h3 className="text-sm font-bold text-primary mb-3">{monthName}</h3>
+                <div className="grid grid-cols-7 gap-x-[2px] gap-y-1 text-[9px] text-muted-foreground font-semibold mb-2">
+                  {WEEKDAYS_SHORT.map((d, i) => <div key={i} className="text-center">{d}</div>)}
                 </div>
-                <div className="grid grid-cols-7 gap-x-[2px] gap-y-0.5 text-[10px] font-medium">
+                <div className="grid grid-cols-7 gap-x-[2px] gap-y-1 text-[11px] font-medium">
                   {blanks.map(b => <div key={`b-${b}`} />)}
                   {days.map(d => {
                     const dateStr = `${currentYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-                    const isToday = dateStr === new Date().toISOString().split('T')[0]
+                    const isToday = dateStr === todayStr
                     const info = eventDateMap[dateStr]
                     return (
-                      <div key={d} className="flex flex-col items-center">
-                        <div className={`text-center flex justify-center items-center rounded-full ${isToday ? 'bg-red-500 text-white w-4 h-4 mx-auto' : 'text-foreground'}`}>
+                      <div key={d} className="flex flex-col items-center justify-center min-h-[22px]">
+                        <div className={`
+                          text-center flex justify-center items-center rounded-full text-xs w-5 h-5
+                          ${isToday ? 'bg-rose-500 text-white font-bold' : 'text-foreground'}
+                        `}>
                           {d}
                         </div>
-                        {/* dots: expense = red, income = green, reminder = blue, goal = purple */}
                         {info && !isToday && (
-                          <div className="flex gap-[1px] mt-[1px]">
-                            {info.hasExpense && <div className="w-[3px] h-[3px] rounded-full bg-red-500/70" />}
-                            {info.hasIncome && <div className="w-[3px] h-[3px] rounded-full bg-green-500/70" />}
-                            {info.hasReminder && <div className="w-[3px] h-[3px] rounded-full bg-blue-500/70" />}
-                            {info.hasGoal && <div className="w-[3px] h-[3px] rounded-full bg-purple-500/70" />}
+                          <div className="flex gap-[1.5px] mt-[2px]">
+                            {info.hasExpense && <div className="w-[4px] h-[4px] rounded-full bg-rose-500" />}
+                            {info.hasIncome && <div className="w-[4px] h-[4px] rounded-full bg-green-500" />}
+                            {info.hasReminder && <div className="w-[4px] h-[4px] rounded-full bg-amber-500" />}
+                            {info.hasGoal && <div className="w-[4px] h-[4px] rounded-full bg-indigo-500" />}
                           </div>
                         )}
                       </div>
@@ -142,107 +156,131 @@ export default function CalendarioPage() {
     )
   }
 
-  // MONTH VIEW (CONTINUOUS)
+  // VIEW: MONTH (REDISEHNED)
+  const daysInMonth = getDaysInMonth(currentYear, currentMonth)
+  const firstDay = getFirstDayOfMonth(currentYear, currentMonth)
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+  const blanks = Array.from({ length: firstDay }, (_, i) => i)
+
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground pb-24 p-4 pt-8 animate-in fade-in duration-300 flex flex-col max-w-2xl mx-auto">
       {/* Header */}
-      <div className="pt-12 px-4 pb-2 flex justify-between items-center shrink-0">
-        <button onClick={() => setView('year')} className="flex items-center text-red-500 font-medium text-lg">
-          <ChevronLeft size={24} className="-ml-1" />
-          <span>{currentYear}</span>
-        </button>
-        <div className="flex gap-4 text-primary">
-          <Link href="/dashboard"><LayoutDashboard size={22} /></Link>
+      <div className="flex justify-between items-center mb-6 shrink-0">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard" className="h-10 px-3 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium flex items-center gap-1 transition-colors">
+            <ChevronLeft size={16} />
+            Painel
+          </Link>
+          <button
+            onClick={() => setView('year')}
+            className="h-10 px-3 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium flex items-center gap-1.5 transition-colors text-primary"
+          >
+            <Grid size={16} />
+            Ver Ano
+          </button>
+        </div>
+        <div className="flex items-center gap-1 bg-secondary/40 rounded-xl p-0.5 border border-white/5">
+          <button 
+            onClick={goPrevMonth}
+            className="h-9 w-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <span className="px-2 text-sm font-semibold min-w-[100px] text-center">
+            {MONTH_NAMES[currentMonth]} {currentYear}
+          </span>
+          <button 
+            onClick={goNextMonth}
+            className="h-9 w-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <ChevronRight size={18} />
+          </button>
         </div>
       </div>
 
-      {/* Weekdays Sticky Bar */}
-      <div className="grid grid-cols-7 border-b border-border/40 pb-2 text-xs font-semibold text-muted-foreground px-2 shrink-0">
-        {WEEKDAYS.map((d, i) => <div key={i} className="text-center">{d}</div>)}
-      </div>
-
-      {/* Continuous Scrollable Months */}
-      <div ref={monthListRef} className="flex-1 overflow-y-auto px-2 pb-32 no-scrollbar">
-        {MONTH_NAMES.map((monthName, monthIndex) => {
-          const daysInMonth = getDaysInMonth(currentYear, monthIndex)
-          const firstDay = getFirstDayOfMonth(currentYear, monthIndex)
-          const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
-          const blanks = Array.from({ length: firstDay }, (_, i) => i)
-
-          return (
-            <div key={monthName} id={`month-${monthIndex}`} className="mt-8 mb-4">
-              <h2 className="text-2xl font-bold mb-4 ml-2">{monthName}</h2>
-              <div className="grid grid-cols-7 gap-y-4">
-                {blanks.map(b => <div key={`blank-${b}`} className="h-10" />)}
-                {days.map(d => {
-                  const dateStr = `${currentYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-                  const isSelected = dateStr === selectedDate
-                  const isToday = dateStr === new Date().toISOString().split('T')[0]
-                  const info = eventDateMap[dateStr]
-                  const hasIncome = info?.hasIncome ?? false
-                  const hasExpense = info?.hasExpense ?? false
-
-                  return (
-                    <div
-                      key={d}
-                      onClick={() => handleDayClick(dateStr)}
-                      className="flex flex-col items-center justify-start h-10 cursor-pointer relative"
-                    >
-                      <div className={`
-                        flex items-center justify-center w-8 h-8 rounded-full text-lg font-medium transition-all
-                        ${isSelected && sheetOpen
-                          ? (isToday ? 'bg-red-500 text-white' : 'bg-primary/20 text-primary')
-                          : (isToday ? 'text-red-500' : 'text-foreground')}
-                      `}>
-                        {d}
-                      </div>
-
-                      {/* Dots Container */}
-                      <div className="flex gap-0.5 mt-0.5">
-                        {hasExpense && <div className="w-1.5 h-1.5 rounded-full bg-red-500/80" />}
-                        {hasIncome && <div className="w-1.5 h-1.5 rounded-full bg-green-500/80" />}
-                        {info?.hasReminder && <div className="w-1.5 h-1.5 rounded-full bg-blue-500/80" />}
-                        {info?.hasGoal && <div className="w-1.5 h-1.5 rounded-full bg-purple-500/80" />}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+      {/* Calendário Mensal Card */}
+      <div className="bg-secondary/15 border border-white/5 rounded-3xl p-5 shadow-lg mb-6">
+        {/* Dias da semana */}
+        <div className="grid grid-cols-7 gap-1 text-center mb-4">
+          {WEEKDAYS.map((d, i) => (
+            <div key={i} className="text-xs font-bold text-muted-foreground/85 py-1">
+              {d}
             </div>
-          )
-        })}
+          ))}
+        </div>
+
+        {/* Grade de Dias */}
+        <div className="grid grid-cols-7 gap-y-3 gap-x-1">
+          {blanks.map(b => <div key={`blank-${b}`} className="aspect-square" />)}
+          {days.map(d => {
+            const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+            const isSelected = dateStr === selectedDate
+            const isToday = dateStr === todayStr
+            const info = eventDateMap[dateStr]
+
+            return (
+              <div
+                key={d}
+                onClick={() => handleDayClick(dateStr)}
+                className="flex flex-col items-center justify-center aspect-square cursor-pointer relative group"
+              >
+                <div className={`
+                  flex items-center justify-center w-9 h-9 rounded-full text-base font-semibold transition-all duration-200
+                  ${isSelected 
+                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.08]' 
+                    : isToday 
+                    ? 'border-2 border-rose-500 text-rose-500 font-bold' 
+                    : 'text-foreground hover:bg-secondary/40'}
+                `}>
+                  {d}
+                </div>
+
+                {/* Event Dots */}
+                {info && (
+                  <div className="flex gap-[2px] mt-1 absolute bottom-0.5">
+                    {info.hasExpense && <div className="w-[4px] h-[4px] rounded-full bg-rose-500" />}
+                    {info.hasIncome && <div className="w-[4px] h-[4px] rounded-full bg-green-500" />}
+                    {info.hasReminder && <div className="w-[4px] h-[4px] rounded-full bg-amber-500" />}
+                    {info.hasGoal && <div className="w-[4px] h-[4px] rounded-full bg-indigo-500" />}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
-      {/* Bottom Sheet Details overlay */}
-      {sheetOpen && selectedEvents.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-secondary/95 backdrop-blur-xl border-t border-white/10 p-5 pt-3 rounded-t-3xl shadow-[0_-20px_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom-full duration-300 z-[70] pb-32">
-          {/* Handle — clicável para minimizar */}
-          <button
-            onClick={() => setSheetOpen(false)}
-            className="w-full flex justify-center mb-4 py-1 -mt-1"
-            aria-label="Fechar painel"
-          >
-            <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />
-          </button>
+      {/* Seção de Compromissos do Dia Selecionado */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex justify-between items-center mb-4 shrink-0">
+          <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+            <CalendarDays size={18} className="text-primary" />
+            Compromissos para {selectedDate.split('-').reverse().join('/')}
+          </h3>
+          <span className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase bg-secondary/50 px-2.5 py-1 rounded-full">
+            {selectedEvents.length} {selectedEvents.length === 1 ? 'evento' : 'eventos'}
+          </span>
+        </div>
 
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold text-muted-foreground">
-              Contas em {selectedDate.split('-').reverse().join('/')}
-            </h3>
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-bold">Fixas</span>
-          </div>
-
-          <div className="space-y-3 max-h-[40vh] overflow-y-auto no-scrollbar pb-2">
-            {selectedEvents.map(ev => (
-              <div key={ev.id} className="flex justify-between items-center bg-background/50 p-4 rounded-2xl border border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${
+        <div className="flex-1 overflow-y-auto space-y-3 pr-1 pb-4 no-scrollbar">
+          {selectedEvents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center bg-secondary/5 border border-white/5 rounded-3xl">
+              <span className="text-4xl mb-2 opacity-35">📅</span>
+              <p className="text-sm text-muted-foreground">
+                Nenhum compromisso agendado para esta data.
+              </p>
+            </div>
+          ) : (
+            selectedEvents.map(ev => (
+              <div key={ev.id} className="flex justify-between items-center bg-secondary/15 hover:bg-secondary/25 p-4 rounded-2xl border border-white/5 transition-all duration-200">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
                     ev.type === 'income' ? 'bg-green-500' : 
-                    ev.type === 'reminder' ? 'bg-blue-500' : 
-                    ev.type === 'goal' ? 'bg-purple-500' : 'bg-red-500'
+                    ev.type === 'reminder' ? 'bg-amber-500' : 
+                    ev.type === 'goal' ? 'bg-indigo-500' : 'bg-rose-500'
                   }`} />
-                  <div className="flex flex-col">
-                    <span className="font-medium text-sm leading-tight">{ev.description}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-semibold text-sm leading-snug text-foreground truncate">{ev.description}</span>
                     <span className="text-[10px] text-muted-foreground mt-0.5">
                       {ev.type === 'reminder' 
                         ? `Lembrete às ${ev.time}`
@@ -252,29 +290,28 @@ export default function CalendarioPage() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 flex-shrink-0 ml-3">
                   {ev.type !== 'reminder' && (
-                    <span className={`font-semibold text-sm ${ev.type === 'income' || ev.type === 'goal' ? 'text-green-500' : 'text-foreground'}`}>
+                    <span className={`font-bold text-sm ${ev.type === 'income' || ev.type === 'goal' ? 'text-green-500' : 'text-foreground'}`}>
                       {ev.type === 'income' || ev.type === 'goal' ? '+' : '-'} R$ {ev.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   )}
                   {ev.type === 'reminder' ? (
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={async () => {
-                          if (confirm('Excluir este lembrete?')) {
-                            await deleteReminder(ev.reminder_id!);
-                            const res = await getCalendarEvents(currentYear);
-                            if (res.success && res.events) setEvents(res.events);
-                          }
-                        }}
-                        className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                    <button 
+                      onClick={async () => {
+                        if (confirm('Excluir este lembrete?')) {
+                          await deleteReminder(ev.reminder_id!);
+                          const res = await getCalendarEvents(currentYear);
+                          if (res.success && res.events) setEvents(res.events);
+                        }
+                      }}
+                      className="h-8 w-8 rounded-lg flex items-center justify-center bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-colors"
+                      aria-label="Excluir lembrete"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   ) : ev.type === 'goal' ? (
-                    <span className="text-xs text-muted-foreground">Automático</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wide">Meta</span>
                   ) : (
                     <EditRecurringModal item={{
                       id: ev.recurring_id!,
@@ -286,10 +323,10 @@ export default function CalendarioPage() {
                   )}
                 </div>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

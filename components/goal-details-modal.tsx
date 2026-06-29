@@ -85,18 +85,24 @@ export function GoalDetailsModal({ goal, onClose }: GoalDetailsModalProps) {
   const isCompleted = goal.percentage >= 100;
   const totalPeriods = goal.totalPeriods || goal.periods;
   const amountPerInstallment = goal.originalAmountPerPeriod || (goal.targetAmount / totalPeriods);
-  const paidPeriods = amountPerInstallment > 0 ? Math.min(Math.floor(goal.totalSaved / amountPerInstallment), totalPeriods) : totalPeriods;
-  const remainingPeriods = totalPeriods - paidPeriods;
+  
+  // Mapeia os depósitos em ordem cronológica (do mais antigo para o mais recente)
+  const depositsAsc = goal.deposits ? [...goal.deposits].reverse() : [];
+  const paidPeriods = Math.min(depositsAsc.length, totalPeriods);
+  const remainingPeriods = Math.max(totalPeriods - paidPeriods, 0);
   const remainingAmount = Math.max(goal.targetAmount - goal.totalSaved, 0);
   const dynamicAmountPerPeriod = remainingPeriods > 0 ? remainingAmount / remainingPeriods : 0;
   
   // Create an array representing the installments
   const installments = Array.from({ length: totalPeriods }, (_, i) => {
     const isPaid = i < paidPeriods || isCompleted;
+    const amount = isPaid 
+      ? Number(depositsAsc[i]?.amount || amountPerInstallment) 
+      : dynamicAmountPerPeriod;
     return {
       index: i + 1,
       isPaid,
-      amount: isPaid ? amountPerInstallment : dynamicAmountPerPeriod
+      amount
     }
   });
 

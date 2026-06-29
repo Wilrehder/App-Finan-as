@@ -55,7 +55,7 @@ function TransactionItem({ t }: { t: Transaction }) {
           {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </span>
         {t.type !== 'goal_deposit' && (
-          <DeleteTransactionButton id={t.id} description={t.description} />
+          <DeleteTransactionButton id={t.id} description={t.description} isRecurring={!!t.recurring_id} />
         )}
       </div>
     </div>

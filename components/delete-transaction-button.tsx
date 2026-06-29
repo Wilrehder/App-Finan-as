@@ -7,13 +7,25 @@ import { deleteTransaction } from "@/app/dashboard/delete-actions"
 interface DeleteTransactionButtonProps {
   id: string
   description: string
+  isRecurring?: boolean
 }
 
-export function DeleteTransactionButton({ id, description }: DeleteTransactionButtonProps) {
+export function DeleteTransactionButton({ id, description, isRecurring }: DeleteTransactionButtonProps) {
   const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleClick = async () => {
+    if (isRecurring) {
+      const confirmed = window.confirm(
+        "Atenção: Esta é uma conta fixa.\n\nA exclusão apagará apenas o lançamento do mês atual. Se quiser excluir a recorrência futura, você terá que excluí-la em Configurações > Gerenciar Contas e Rendas Fixas.\n\nDeseja prosseguir com a exclusão deste mês?"
+      )
+      if (!confirmed) return
+      setLoading(true)
+      await deleteTransaction(id)
+      setLoading(false)
+      return
+    }
+
     if (!confirming) {
       setConfirming(true)
       // Auto-cancela confirmação após 3s

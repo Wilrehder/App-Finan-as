@@ -87,23 +87,42 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
   useEffect(() => {
     if (!sdkReady || !accepted) return
     
+    let isMounted = true
+    
     // Aguarda o React pintar os divs no DOM antes de montar os iframes
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       try {
-        const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY || ""
+        let publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY || ""
+        if (!publicKey) {
+          try {
+            const res = await fetch("/api/mercadopago/config")
+            const data = await res.json()
+            if (data.publicKey) {
+              publicKey = data.publicKey
+            }
+          } catch (e) {
+            console.error("Erro ao obter chave pública via API:", e)
+          }
+        }
+
         if (!publicKey) { 
           console.error("Missing NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY")
-          setError("Chave pública do Mercado Pago não encontrada."); 
-          setSdkError(true); 
+          if (isMounted) {
+            setError("Chave pública do Mercado Pago não encontrada."); 
+            setSdkError(true); 
+          }
           return 
         }
+
+        if (!isMounted) return
 
         const mp = new window.MercadoPago(publicKey, { locale: "pt-BR" })
         mpRef.current = mp
 
         // Verifica se os elementos existem no DOM
         if (!document.getElementById("mp-cn")) {
-          setError("Erro interno: recarregue a página."); return
+          if (isMounted) setError("Erro interno: recarregue a página.");
+          return
         }
 
         // IMPORTANTE: guardar a MESMA instância para usar no createCardToken
@@ -112,7 +131,7 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
 
         const style = { color: "#e4e4e7", placeholderColor: "#52525b", fontSize: "15px" }
         let ready = 0
-        const onReady = () => { ready++; if (ready >= 3) setFieldsReady(true) }
+        const onReady = () => { ready++; if (ready >= 3 && isMounted) setFieldsReady(true) }
 
         const cn = fields.create("cardNumber", { style, placeholder: "0000 0000 0000 0000" })
         const ex = fields.create("expirationDate", { style, placeholder: "MM/AA" })
@@ -124,12 +143,16 @@ export function TrialCardForm({ userEmail, onSuccess }: TrialCardFormProps) {
 
       } catch (err: any) {
         console.error("MP mount error:", err)
-        setError("Erro do SDK: " + translateMpError(err))
-        setSdkError(true)
+        if (isMounted) {
+          setError("Erro do SDK: " + translateMpError(err))
+          setSdkError(true)
+        }
       }
     }, 200)
     
     return () => {
+      isMounted = false
+      clearTimeout(timer)
       // Limpeza ao desmarcar a caixa
       setFieldsReady(false)
       if (fieldsRef.current) {

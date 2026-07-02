@@ -85,9 +85,11 @@ input, textarea {
   font-size: 16px !important;
 }
 
-/* Prevent PWA pull-to-refresh and rubber banding */
+/* Prevent PWA pull-to-refresh, rubber banding, and horizontal scroll */
 html, body {
   overscroll-behavior-y: none;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 /* Hide BottomNav and adjust chat container when keyboard is open */

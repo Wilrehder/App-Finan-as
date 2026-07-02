@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/layout/bottom-nav";
@@ -17,11 +17,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1.0,
+  maximumScale: 1.0,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#09090b",
+};
+
 export const metadata: Metadata = {
   title: "Finchat - Controle financeiro inteligente",
   description: "Controle suas finanças de forma simples através de uma inteligência artificial.",
   manifest: "/manifest.json",
-  themeColor: "#09090b",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
